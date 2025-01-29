@@ -23,7 +23,8 @@ app.head('/healthz', (req, res) => {
 app.get('/healthz', async (req, res) => {
     try {
         
-        if (Object.keys(req.body).length > 0 || Object.keys(req.query).length > 0 || req.get("Content-Length")>0) {
+
+        if (Object.keys(req.body).length > 0 || Object.keys(req.query).length > 0 || req.get("Content-Length")>0 || req.get("authentication") || req.get("authorization")) {
             return res.status(400).send(); 
         }
       
