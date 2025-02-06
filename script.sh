@@ -1,14 +1,16 @@
 #!/bin/bash
 
+# Prompt user for PostgreSQL password
+read -s -p "Enter the password for PostgreSQL user (postgres): " POSTGRES_PASSWORD
+echo ""
+
 APP_DIR="/opt/csye6225"
 WEBAPP_DIR="/opt/csye6225/webapp"
 ZIP_FILE="/root/webapp.zip"
 ENV_FILE="/root/.env"
 
 sudo apt update -y
-
 sudo apt upgrade -y
-
 sudo apt install -y git curl postgresql postgresql-contrib nodejs npm unzip
 
 sudo systemctl start postgresql 
@@ -17,10 +19,8 @@ sudo systemctl enable postgresql
 echo "Creating PostgreSQL database and user..." 
 sudo -i -u postgres psql <<EOF 
 CREATE DATABASE healthcheck_db; 
-CREATE USER app_user; 
-GRANT ALL PRIVILEGES ON DATABASE healthcheck_db TO app_user; 
+ALTER USER postgres WITH PASSWORD '$POSTGRES_PASSWORD';
 EOF
-
 
 echo "Creating application user and group..."
 sudo groupadd -f healthapp_group
