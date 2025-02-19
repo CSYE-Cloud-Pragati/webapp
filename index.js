@@ -5,13 +5,12 @@ const HealthCheck = require('./models/healthCheck');
 const app = express();
 const port = 8080;
 
-if (process.env.NODE_ENV !== 'test') {
-    sequelize.sync({ force: false }).then(() => {
-        console.log('Database synchronized!');
-    }).catch((error) => {
-        console.error('Error synchronizing database:', error);
-    });
-}
+sequelize.sync({ force: false }).then(() => {
+    console.log('Database synchronized!');
+}).catch((error) => {
+    console.error('Error synchronizing database:', error);
+});
+
 
 // Middleware to handle JSON parsing errors
 app.use((req, res, next) => {
