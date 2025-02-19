@@ -55,10 +55,10 @@ jobs:
         run: |
           # Use the environment variables and pass the password via PGPASSWORD
           PGPASSWORD=${{ env.DB_PASSWORD }} psql \
-            -h ${{ env.DB_HOST }} \
-            -U ${{ env.DB_USER }} \
-            -p ${{ env.DB_PORT }} \
-            -c "CREATE DATABASE \"${{ env.DB_NAME }}\";"
+            -h ${DB_HOST} \
+            -U ${DB_USER} \
+            -p ${DB_PORT} \
+            -c "CREATE DATABASE \"${DB_NAME}\";"
 
       - name: Run tests
         run: npm test
