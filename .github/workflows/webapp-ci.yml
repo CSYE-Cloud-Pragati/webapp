@@ -14,9 +14,9 @@ jobs:
     env:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_USER: ${{ secrets.DB_USER }}
-      DB_PASS: ${{ secrets.DB_PASS }}
+      DB_PASS: ${{ secrets.DB_PASSWORD }}
       DB_HOST: localhost
-      PORT: ${{ secrets.PORT }}
+      PORT: ${{ secrets.DB_PORT }}
  
     steps:
       - name: Checkout Code
@@ -35,7 +35,7 @@ jobs:
           docker run -d --name postgres_container \
             -e POSTGRES_DB=${{ secrets.DB_NAME }} \
             -e POSTGRES_USER=${{ secrets.DB_USER }} \
-            -e POSTGRES_PASSWORD=${{ secrets.DB_PASS }} \
+            -e POSTGRES_PASSWORD=${{ secrets.DB_PASSWORD }} \
             -p 5432:5432 postgres:latest
  
       - name: Wait for PostgreSQL to be ready
@@ -53,7 +53,7 @@ jobs:
       - name: Configure Environment Variables
         run: |
           echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
           echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
           echo "DB_HOST=localhost" >> .env
           echo "PORT=${{ secrets.PORT }}" >> .env
@@ -62,7 +62,7 @@ jobs:
         run: npm test
         env:
           DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_HOST: localhost
           PORT: ${{ secrets.PORT }}
