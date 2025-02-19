@@ -16,7 +16,7 @@ describe("Health Check Route Tests Running....", () => {
     it("should return 200 OK with correct headers and empty body", async () => {
         HealthCheck.create.mockResolvedValueOnce({}); 
         const response = await request(app).get("/healthz");
-        expect(response.status).toBe(400);
+        expect(response.status).toBe(200);
         expect(response.text).toBe(""); 
         expect(response.headers).toHaveProperty("cache-control", "no-cache, no-store, must-revalidate");
         expect(response.headers).toHaveProperty("pragma", "no-cache");
