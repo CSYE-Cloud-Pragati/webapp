@@ -11,19 +11,27 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
 
+    # Define secrets as job-level environment variables.
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      PORT: ${{ secrets.PORT }}
+
     services:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: ${{ secrets.DB_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.DB_NAME }}
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.DB_NAME }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U ${{ secrets.DB_USER }}" 
-          --health-interval=10s 
-          --health-timeout=5s 
+          --health-cmd="pg_isready -U ${{ env.DB_USER }}"
+          --health-interval=10s
+          --health-timeout=5s
           --health-retries=5
 
     steps:
@@ -40,12 +48,12 @@ jobs:
 
       - name: Configure Environment Variables
         run: |
-          echo DB_USER=${{ secrets.DB_USER }}
-          echo DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          echo DB_NAME=${{ secrets.DB_NAME }}
-          echo DB_HOST=${{ secrets.DB_HOST }}
-          echo PORT=${{ secrets.PORT }}
-      
+          echo DB_USER=${{ env.DB_USER }}
+          echo DB_PASSWORD=${{ env.DB_PASSWORD }}
+          echo DB_NAME=${{ env.DB_NAME }}
+          echo DB_HOST=${{ env.DB_HOST }}
+          echo PORT=${{ env.PORT }}
+
       - name: Wait for PostgreSQL to be ready
         run: |
           until pg_isready -h "127.0.0.1" -p "5432"; do
@@ -56,8 +64,8 @@ jobs:
       - name: Run Tests
         run: npm test -- --forceExit
         env:
-          PORT: ${{ secrets.PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_HOST: ${{ secrets.DB_HOST }}
+          PORT: ${{ env.PORT }}
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_HOST: ${{ env.DB_HOST }}
