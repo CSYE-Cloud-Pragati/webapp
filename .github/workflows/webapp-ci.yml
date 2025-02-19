@@ -47,7 +47,6 @@ jobs:
           echo "Setting up PostgreSQL environment variables..."
           echo "DB_USER = ${{ secrets.DB_USER }}"
           echo "DB_HOST = ${{ secrets.DB_HOST }}"
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           echo "DB_DBNAME = ${{ secrets.DB_NAME }}"
           echo "DB_DIALECT = postgres"
         env:
