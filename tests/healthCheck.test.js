@@ -2,10 +2,6 @@ const request = require("supertest");
 const app = require("../index");
 const HealthCheck = require("../models/healthCheck"); 
 
-jest.mock("../models/healthCheck", () => ({
-    create: jest.fn(),
-}));
-
 describe("Health Check Route Tests Running....", () => {
 
     // Get request with no payload or params

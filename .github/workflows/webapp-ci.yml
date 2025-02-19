@@ -42,9 +42,23 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '14'
-
+      
       - name: Install dependencies
         run: npm install
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create database
+        run: |
+          # Use the environment variables and pass the password via PGPASSWORD
+          PGPASSWORD=${{ env.DB_PASSWORD }} psql \
+            -h ${{ env.DB_HOST }} \
+            -U ${{ env.DB_USER }} \
+            -p ${{ env.DB_PORT }} \
+            -c "CREATE DATABASE \"${{ env.DB_NAME }}\";"
 
       - name: Run tests
         run: npm test
