@@ -20,19 +20,13 @@ jobs:
           POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     env:
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_HOST: "127.0.0.1"
+      DB_PORT: "5432"
       DB_USER: ${{ secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
-      AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
 
     steps:
       - name: Checkout repository
@@ -42,32 +36,32 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '14'
-      
+
       - name: Install dependencies
         run: npm install
 
-      # - name: Install PostgreSQL client
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y postgresql-client
+      - name: Debug PostgreSQL connection
+        run: |
+          echo "Testing PostgreSQL connection..."
+          PGPASSWORD="${DB_PASSWORD}" pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}"
 
       - name: Wait for PostgreSQL
         run: |
-          echo "Waiting for Postgres to be ready..."
-          for i in {1..10}; do
-            if pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER}; then
-              echo "Postgres is ready!"
+          echo "Waiting for PostgreSQL to start..."
+          for i in {1..15}; do
+            if PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
+              echo "PostgreSQL is ready!"
               exit 0
             fi
-            echo "Postgres is unavailable - sleeping"
+            echo "PostgreSQL is unavailable - sleeping"
             sleep 3
           done
-          echo "Postgres failed to start"
+          echo "PostgreSQL failed to start"
           exit 1
 
       - name: Create database and user
         run: |
-          psql -h 127.0.0.1 -p 5432 -U postgres <<-EOSQL
+          PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" <<-EOSQL
 
             DO \$\$
             BEGIN
@@ -93,7 +87,6 @@ jobs:
 
             GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO "${DB_USER}";
           EOSQL
-
 
       - name: Run tests
         run: npm test
