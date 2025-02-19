@@ -65,13 +65,35 @@ jobs:
           echo "Postgres failed to start"
           exit 1
 
-      - name: Create database
+      - name: Create database and user
         run: |
-          PGPASSWORD=${DB_PASSWORD} psql \
-            -h ${DB_HOST} \
-            -U ${DB_USER} \
-            -p ${DB_PORT} \
-            -c "CREATE DATABASE \"${DB_NAME}\";"
+          PGPASSWORD="postgres" psql -h 127.0.0.1 -p 5432 -U postgres <<-EOSQL
+
+            DO \$\$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT FROM pg_database 
+                WHERE datname = '${DB_NAME}'
+              ) THEN
+                EXECUTE 'CREATE DATABASE ${DB_NAME}';
+              END IF;
+            END
+            \$\$;
+
+            DO \$\$
+            BEGIN
+              IF NOT EXISTS (
+                SELECT FROM pg_catalog.pg_roles 
+                WHERE rolname = '${DB_USER}'
+              ) THEN
+                EXECUTE 'CREATE USER ${DB_USER} WITH ENCRYPTED PASSWORD ''${DB_PASSWORD}''';
+              END IF;
+            END
+            \$\$;
+
+            GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO "${DB_USER}";
+          EOSQL
+
 
       - name: Run tests
         run: npm test
