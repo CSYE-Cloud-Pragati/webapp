@@ -67,7 +67,7 @@ jobs:
 
       - name: Create database
         run: |
-          PGPASSWORD=${{DB_PASSWORD }} psql \
+          PGPASSWORD=${DB_PASSWORD} psql \
             -h ${DB_HOST} \
             -U ${DB_USER} \
             -p ${DB_PORT} \
