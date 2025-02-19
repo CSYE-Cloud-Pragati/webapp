@@ -1,6 +1,5 @@
 const request = require("supertest");
 const app = require("../index");
-const sequelize = require('../config/database'); 
 const HealthCheck = require("../models/healthCheck"); 
 
 jest.mock("../models/healthCheck", () => ({
