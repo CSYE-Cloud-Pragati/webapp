@@ -67,7 +67,7 @@ jobs:
 
       - name: Create database and user
         run: |
-          PGPASSWORD="postgres" psql -h 127.0.0.1 -p 5432 -U postgres <<-EOSQL
+          psql -h 127.0.0.1 -p 5432 -U postgres <<-EOSQL
 
             DO \$\$
             BEGIN
