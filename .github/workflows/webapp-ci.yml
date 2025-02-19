@@ -9,7 +9,6 @@ jobs:
   build:
     name: Continuous Integration Test
     runs-on: ubuntu-latest
-    environment: dev
 
     env:
       DB_NAME: ${{ secrets.DB_NAME }}
