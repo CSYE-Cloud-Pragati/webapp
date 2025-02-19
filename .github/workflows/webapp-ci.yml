@@ -1,88 +1,67 @@
 name: webapp-ci
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
-    name: Run tests
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:9.6 
-        env:
-          POSTGRES_USER: "postgres"
-          POSTGRES_PASSWORD: "postgres"
-          POSTGRES_DB: "postgres"
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      DB_HOST: "127.0.0.1"
-      DB_PORT: "5432"
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DB_NAME }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '22.9.0'
+      
+      - name: Install PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql postgresql-contrib
+
+      - name: Start PostgreSQL service
+        run: |
+          sudo service postgresql start
+          sudo -u postgres psql -c "ALTER USER postgres PASSWORD '${{ secrets.DB_PASSWORD }}';"
+          sudo -u postgres psql -c "CREATE DATABASE ${{ secrets.DB_NAME }};"
 
       - name: Install dependencies
         run: npm install
 
-      - name: Wait for PostgreSQL
+      - name: Starting server
+        run: node server.js
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          DB_DBNAME: ${{ secrets.DB_NAME }}
+          DB_DIALECT: "postgres"
+
+      - name: Setting up PostgreSQL
         run: |
-          echo "Waiting for PostgreSQL to start..."
-          for i in {1..15}; do
-            if PGPASSWORD="postgres" psql -h "127.0.0.1" -U "postgres" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
-              echo "PostgreSQL is ready!"
-              exit 0
-            fi
-            echo "PostgreSQL is unavailable - sleeping"
-            sleep 3
-          done
-          echo "PostgreSQL failed to start"
-          exit 1
-
-      - name: Create database and user
-        run: |
-          echo "Creating database and ensuring user exists..."
-          PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" <<-EOSQL
-            DO \$\$
-            BEGIN
-              IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB_NAME}') THEN
-                CREATE DATABASE "${DB_NAME}";
-              END IF;
-            END
-            \$\$;
-
-            DO \$\$
-            BEGIN
-              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${DB_USER}') THEN
-                CREATE USER "${DB_USER}" WITH ENCRYPTED PASSWORD '${DB_PASSWORD}';
-              ELSE
-                ALTER USER "${DB_USER}" WITH PASSWORD '${DB_PASSWORD}';
-              END IF;
-            END
-            \$\$;
-
-            GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO "${DB_USER}";
-          EOSQL
+          echo "Setting up PostgreSQL environment variables..."
+          echo "DB_USER = ${{ secrets.DB_USER }}"
+          echo "DB_HOST = ${{ secrets.DB_HOST }}"
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          echo "DB_DBNAME = ${{ secrets.DB_NAME }}"
+          echo "DB_DIALECT = postgres"
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          DB_DBNAME: ${{ secrets.DB_NAME }}
+          DB_DIALECT: "postgres"
 
       - name: Run tests
         run: npm test
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASSWORD }}
+          DB_DBNAME: ${{ secrets.DB_NAME }}
+          DB_DIALECT: "postgres"
