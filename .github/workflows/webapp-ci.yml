@@ -34,7 +34,7 @@ jobs:
         run: npm install
 
       - name: Starting server
-        run: node server.js
+        run: node index.js
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_USER: ${{ secrets.DB_USER }}
