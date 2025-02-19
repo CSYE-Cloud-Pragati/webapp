@@ -37,7 +37,7 @@ app.get('/healthz', async (req, res) => {
         if (Object.keys(req.body).length > 0 || Object.keys(req.query).length > 0 || req.get("Content-Length")>0 || req.get("authentication") || req.get("authorization")) {
             return res.status(400).send(); 
         } 
-        console.log(HealthCheck);
+        console.log(HealthCheck.head);
         await HealthCheck.create({});
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
