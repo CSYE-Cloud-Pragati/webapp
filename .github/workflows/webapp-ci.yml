@@ -13,7 +13,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:9.6  # ✅ Use the oldest available PostgreSQL version
+        image: postgres:9.6 
         env:
           POSTGRES_USER: "postgres"
           POSTGRES_PASSWORD: "postgres"
@@ -29,9 +29,9 @@ jobs:
     env:
       DB_HOST: "127.0.0.1"
       DB_PORT: "5432"
-      DB_USER: "postgres"
-      DB_PASSWORD: "postgres"
-      DB_NAME: "healthcheck_db"
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
 
     steps:
       - name: Checkout repository
@@ -45,12 +45,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # ✅ Improved: Wait for PostgreSQL to start
       - name: Wait for PostgreSQL
         run: |
           echo "Waiting for PostgreSQL to start..."
           for i in {1..15}; do
-            if PGPASSWORD="postgres" psql -h "${DB_HOST}" -U "postgres" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
+            if PGPASSWORD="postgres" psql -h "127.0.0.1" -U "postgres" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
               echo "PostgreSQL is ready!"
               exit 0
             fi
