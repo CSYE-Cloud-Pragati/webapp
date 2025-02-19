@@ -10,7 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Pass secrets as environment variables to your tests
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_PORT: ${{ secrets.DB_PORT }}
@@ -20,20 +19,16 @@ jobs:
       AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
 
     steps:
-      # Check out the code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Setup Node.js (adjust node-version as needed)
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '14'
 
-      # Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # Run Jest tests
       - name: Run tests
         run: npm test
