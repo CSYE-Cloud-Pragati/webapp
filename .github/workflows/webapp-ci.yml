@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "Waiting for PostgreSQL to start..."
           for i in {1..15}; do
-            if PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
+            if PGPASSWORD="postgres" psql -h "${DB_HOST}" -U "postgres" -p "${DB_PORT}" -c '\q' > /dev/null 2>&1; then
               echo "PostgreSQL is ready!"
               exit 0
             fi
