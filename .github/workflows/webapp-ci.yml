@@ -33,6 +33,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Start Server in Background
+        run: nohup node index.js > server.log 2>&1 &
+        env:
+          DB_HOST: "${{ secrets.DB_HOST }}"
+          DB_USER: "${{ secrets.DB_USER }}"
+          DB_PASS: "${{ secrets.DB_PASSWORD }}"
+          DB_DBNAME: "${{ secrets.DB_NAME }}"
+          DB_DIALECT: "postgres"
+
       - name: Starting server
         run: node index.js
         env:
@@ -56,6 +65,9 @@ jobs:
           DB_PASS: ${{ secrets.DB_PASSWORD }}
           DB_DBNAME: ${{ secrets.DB_NAME }}
           DB_DIALECT: "postgres"
+
+      - name: Stop Server
+        run: pkill -f "node index.js"
 
       - name: Run tests
         run: npm test
