@@ -49,3 +49,5 @@ If any method other than GET is used (e.g., PUT, POST), the request is rejected:
 ```bash
 curl -vvvv -XPUT http://localhost:8080/healthz
 ```
+
+
