@@ -13,7 +13,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:8.1.3  # ✅ Use PostgreSQL 8.1.3 Docker image
+        image: postgres:9.6  # ✅ Use the oldest available PostgreSQL version
         env:
           POSTGRES_USER: "postgres"
           POSTGRES_PASSWORD: "postgres"
