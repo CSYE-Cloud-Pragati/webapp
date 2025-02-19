@@ -20,12 +20,6 @@ jobs:
           POSTGRES_DB: ${{ secrets.DB_NAME }}
         ports:
           - 5432:5432
-        # Wait for postgres to be ready before starting tests
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     # Pass secrets as environment variables to your tests
     env:
