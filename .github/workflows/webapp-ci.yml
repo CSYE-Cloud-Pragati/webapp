@@ -46,15 +46,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install PostgreSQL client
+      # - name: Install PostgreSQL client
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y postgresql-client
+
+      - name: Wait for PostgreSQL
         run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          echo "Waiting for Postgres to be ready..."
+          for i in {1..10}; do
+            if pg_isready -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER}; then
+              echo "Postgres is ready!"
+              exit 0
+            fi
+            echo "Postgres is unavailable - sleeping"
+            sleep 3
+          done
+          echo "Postgres failed to start"
+          exit 1
 
       - name: Create database
         run: |
-          # Use the environment variables and pass the password via PGPASSWORD
-          PGPASSWORD=${{ env.DB_PASSWORD }} psql \
+          PGPASSWORD=${{DB_PASSWORD }} psql \
             -h ${DB_HOST} \
             -U ${DB_USER} \
             -p ${DB_PORT} \
