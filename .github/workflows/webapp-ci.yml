@@ -40,11 +40,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Debug PostgreSQL connection
+      # ✅ New Step: Start PostgreSQL
+      - name: Start PostgreSQL
         run: |
-          echo "Testing PostgreSQL connection..."
-          PGPASSWORD="${DB_PASSWORD}" pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}"
+          echo "Starting PostgreSQL manually..."
+          sudo systemctl start postgresql || true
+          sudo service postgresql start || true
+          sudo /etc/init.d/postgresql start || true
 
+      # ✅ Improved: Wait for PostgreSQL to start
       - name: Wait for PostgreSQL
         run: |
           echo "Waiting for PostgreSQL to start..."
@@ -62,7 +66,6 @@ jobs:
       - name: Create database and user
         run: |
           PGPASSWORD="${DB_PASSWORD}" psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" <<-EOSQL
-
             DO \$\$
             BEGIN
               IF NOT EXISTS (
