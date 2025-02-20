@@ -5,12 +5,13 @@ const HealthCheck = require('./models/healthCheck');
 const app = express();
 const port = 8080;
 
-sequelize.sync({ force: true }).then(() => {
-    console.log('Database synchronized!');
-}).catch((error) => {
-    console.error('Error synchronizing database:', error);
-});
-
+if (process.env.NODE_ENV !== 'test') {
+    sequelize.sync({ force: true }).then(() => {
+        console.log('Database synchronized!');
+    }).catch((error) => {
+        console.error('Error synchronizing database:', error);
+    });
+}
 
 // Middleware to handle JSON parsing errors
 app.use((req, res, next) => {
@@ -36,7 +37,6 @@ app.get('/healthz', async (req, res) => {
         if (Object.keys(req.body).length > 0 || Object.keys(req.query).length > 0 || req.get("Content-Length")>0 || req.get("authentication") || req.get("authorization")) {
             return res.status(400).send(); 
         } 
-        console.log(HealthCheck.head);
         await HealthCheck.create({});
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');

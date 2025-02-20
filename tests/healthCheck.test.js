@@ -1,11 +1,15 @@
 const request = require("supertest");
 const app = require("../index");
+const sequelize = require('../config/database');
 const HealthCheck = require("../models/healthCheck"); 
+
+beforeAll(async () => {
+    await sequelize.sync({ force: false }); 
+});
 
 describe("Health Check Route Tests Running....", () => {
     // Get request with no payload or params
     it("should return 200 OK with correct headers and empty body", async () => {
-        console.log(HealthCheck);
         const response = await request(app).get("/healthz");
         expect(response.status).toBe(200);
         expect(response.text).toBe(""); 
