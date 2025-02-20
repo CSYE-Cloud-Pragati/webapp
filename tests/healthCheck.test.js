@@ -1,20 +1,15 @@
 const request = require("supertest");
 const app = require("../index");
+const sequelize = require('../config/database');
 const HealthCheck = require("../models/healthCheck"); 
 
-jest.mock("../models/healthCheck", () => ({
-    create: jest.fn(),
-}));
+beforeAll(async () => {
+    await sequelize.sync({ force: false }); 
+});
 
 describe("Health Check Route Tests Running....", () => {
-
-    beforeEach(() => {
-        HealthCheck.create.mockReset();
-    });
-
     // Get request with no payload or params
     it("should return 200 OK with correct headers and empty body", async () => {
-        HealthCheck.create.mockResolvedValueOnce({}); 
         const response = await request(app).get("/healthz");
         expect(response.status).toBe(200);
         expect(response.text).toBe(""); 

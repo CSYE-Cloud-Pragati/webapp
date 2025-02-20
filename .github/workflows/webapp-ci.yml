@@ -1,34 +1,45 @@
-name: webapp-ci
+name: Webapp-ci
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  build:
+  test:
+    name: "Run Tests - 1"
     runs-on: ubuntu-latest
 
-    env:
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{secrets.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{secrets.POSTGRES_DB}}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: "18"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm install
+      - run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - run: npm test
+        env:
+          DB_USERNAME: ${{secrets.POSTGRES_USER}}
+          DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          DB_NAME: ${{secrets.POSTGRES_DB}}
+          DB_HOST: "localhost"
+          DB_PORT: "5432"

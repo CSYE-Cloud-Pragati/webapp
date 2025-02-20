@@ -6,7 +6,7 @@ const app = express();
 const port = 8080;
 
 if (process.env.NODE_ENV !== 'test') {
-    sequelize.sync({ force: false }).then(() => {
+    sequelize.sync({ force: true }).then(() => {
         console.log('Database synchronized!');
     }).catch((error) => {
         console.error('Error synchronizing database:', error);
