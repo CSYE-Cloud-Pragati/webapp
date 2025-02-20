@@ -15,9 +15,9 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: "postgres"
-          POSTGRES_PASSWORD: "Pragati1109"
-          POSTGRES_DB: "health_check"
+          POSTGRES_USER: ${{secrets.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{secrets.POSTGRES_DB}}
         ports:
           - 5432:5432
         options: >-
@@ -38,8 +38,8 @@ jobs:
 
       - run: npm test
         env:
-          DB_USERNAME: "postgres"
-          DB_PASSWORD: "Pragati1109"
-          DB_NAME: "health_check"
+          DB_USERNAME: ${{secrets.POSTGRES_USER}}
+          DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          DB_NAME: ${{secrets.POSTGRES_DB}}
           DB_HOST: "localhost"
           DB_PORT: "5432"
