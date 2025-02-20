@@ -3,7 +3,6 @@ const app = require("../index");
 const HealthCheck = require("../models/healthCheck"); 
 
 describe("Health Check Route Tests Running....", () => {
-
     // Get request with no payload or params
     it("should return 200 OK with correct headers and empty body", async () => {
         console.log(HealthCheck);

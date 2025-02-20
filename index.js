@@ -5,7 +5,7 @@ const HealthCheck = require('./models/healthCheck');
 const app = express();
 const port = 8080;
 
-sequelize.sync({ force: false }).then(() => {
+sequelize.sync({ force: true }).then(() => {
     console.log('Database synchronized!');
 }).catch((error) => {
     console.error('Error synchronizing database:', error);
