@@ -1,4 +1,4 @@
-name: web-app ci
+name: Webapp-ci
 
 on:
   pull_request:
@@ -8,20 +8,38 @@ on:
 
 jobs:
   test:
+    name: "Run Tests - 1"
+    runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: Pragati1109
-          POSTGRES_DB: health_check
+          POSTGRES_USER: "postgres"
+          POSTGRES_PASSWORD: "Pragati1109"
+          POSTGRES_DB: "health_check"
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - run: npm ci
+
       - run: npm test
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USERNAME: postgres
-          DB_PASSWORD: Pragati1109
-          DB_NAME: health_check
+          DB_USERNAME: "postgres"
+          DB_PASSWORD: "Pragati1109"
+          DB_NAME: "health_check"
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
