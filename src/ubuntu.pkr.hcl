@@ -170,6 +170,7 @@ build {
       "ls -al",
       "echo 'UNZIPPING'",
       "sudo unzip /opt/csye6225/webapp.zip -d /opt/csye6225/",
+      "echo 'ls csye6225'",
       "ls -al /opt/csye6225/", # Debugging step
 
       "sudo unzip webapp.zip",
