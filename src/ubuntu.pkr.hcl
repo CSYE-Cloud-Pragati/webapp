@@ -18,6 +18,11 @@ variable "db_user" {
   default = "postgres"
 }
 
+variable "ami_users" {
+  type    = string
+  default = "dev"
+}
+
 variable "db_password" {
   type    = string
   default = "Pragati@1109"
