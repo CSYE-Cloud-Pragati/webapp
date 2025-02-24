@@ -168,6 +168,10 @@ build {
       "sudo chmod -R 755 /opt/csye6225",
       "cd /opt/csye6225",
       "ls -al",
+      "echo 'UNZIPPING'",
+      "sudo unzip /opt/csye6225/webapp.zip -d /opt/csye6225/",
+      "ls -al /opt/csye6225/", # Debugging step
+
       "sudo unzip webapp.zip",
       "cd /opt/csye6225/webapp",
       "ls -al",
