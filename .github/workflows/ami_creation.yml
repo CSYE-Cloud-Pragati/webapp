@@ -1,0 +1,148 @@
+name: ami_creation_1
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    if: github.repository == 'CSYE-Cloud-Pragati/webapp'
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: ${{secrets.POSTGRES_USER}}
+          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          POSTGRES_DB: ${{secrets.POSTGRES_DB}}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USERNAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      PORT: ${{ secrets.PORT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      AMI_USERS: ${{ secrets.AMI_USERS }}
+      AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
+
+    steps:
+    # Step 1: Checkout the repository code
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: npm install
+
+    # Step 5: Run SQL to create database and user (if needed)
+    - name: Create database and user
+      run: |
+        PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=postgres -c "
+        DO
+        \$\$ 
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${{ secrets.DB_NAME }}') THEN
+                CREATE DATABASE ${{ secrets.DB_NAME }};
+            END IF;
+        END
+        \$\$;
+        "
+
+        PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=${{ secrets.DB_NAME }} -c "
+        DO
+        \$\$ 
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${{ secrets.DB_USERNAME }}') THEN
+                CREATE USER ${{ secrets.DB_USERNAME }} WITH ENCRYPTED PASSWORD '${{ secrets.DB_PASSWORD }}';
+            END IF;
+        END
+        \$\$;
+        GRANT ALL PRIVILEGES ON DATABASE ${{ secrets.DB_NAME }} TO ${{ secrets.DB_USERNAME }};
+        "
+
+
+    # Step 6: Run tests
+    - name: Run tests
+      run: npm test
+
+    - name: Create .env file
+      run: |
+        echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+        echo "DB_PORT=${{ secrets.DB_PORT }}" >> .env
+        echo "DB_USERNAME=${{ secrets.DB_USERNAME }}" >> .env
+        echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+        echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+        echo "AUTHENTICATION_ENABLED=${{ secrets.AUTHENTICATION_ENABLED }}" >> .env
+        echo "PORT=8080" >> .env
+        
+
+    - name: List Files and delete node modules
+      run: |
+          sudo rm -rf node_modules
+          ls -al
+
+    - name: Create Zip File
+      run: |
+          zip -r webapp.zip .
+
+    - name: Upload Zip File
+      uses: actions/upload-artifact@v3
+      with:
+          name: webapp zip creation
+          path: webapp.zip
+          
+    - name: Moving Zip to APP_TEST
+      run: |
+          ls
+          pwd
+          sudo mv /home/runner/work/webapp/webapp/webapp.zip /home/runner/work/webapp/webapp/src/
+    - name: Run Packer
+      run: |
+          # Install Packer
+          curl -fsSL https://releases.hashicorp.com/packer/1.7.3/packer_1.7.3_linux_amd64.zip -o packer.zip
+          unzip packer.zip
+          sudo mv packer /usr/local/bin/
+          ls
+          pwd
+          cd src
+          packer init ubuntu.pkr.hcl
+           packer build \
+            -var 'db_name=${{ secrets.DB_NAME }}' \
+            -var 'db_user=${{ secrets.DB_USERNAME }}' \
+            -var 'db_password=${{ secrets.DB_PASSWORD }}' \
+            -var 'aws_region=${{ secrets.AWS_REGION }}' \
+            -var 'source_ami=${{ secrets.SOURCE_AMI }}' \
+            -var 'ssh_username=${{ secrets.SSH_USERNAME }}' \
+            -var 'subnet_id=${{ secrets.SUBNET_ID }}' \
+            -var 'aws_access_key=${{ secrets.AWS_ACCESS_KEY }}' \
+            -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
+            -var 'ami_users=${{ secrets.AMI_USERS }}' \
+            ubuntu.pkr.hcl
+
+
+
+
+
+     
+
