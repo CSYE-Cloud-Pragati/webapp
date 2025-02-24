@@ -1,6 +1,6 @@
 const express = require('express');
-const sequelize = require('./config/database');
-const HealthCheck = require('./models/healthCheck');
+const sequelize = require('./src/config/database');
+const HealthCheck = require('./src/models/healthCheck');
 
 const app = express();
 const port = 8080;

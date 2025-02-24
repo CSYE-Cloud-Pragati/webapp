@@ -1,0 +1,13 @@
+[Unit]
+Description=Node JS Application Service
+After=network.target
+
+[Service]
+User=csye6225
+WorkingDirectory=/opt/csye6225/
+ExecStart=/usr/bin/npm run start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=cloud-init.target
