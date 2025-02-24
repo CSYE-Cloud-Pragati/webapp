@@ -60,7 +60,7 @@ locals {
   sanitized_timestamp = replace(timestamp(), ":", "-") # Replace colons with dashes to make it valid
 }
 
-source "amazon-ebs" "my-ami" {
+source "amazon-ebs" "ubuntu" {
   region          = var.aws_region
   ami_name        = "csye6225-custom-webapp-${local.sanitized_timestamp}"
   ami_description = "AMI for CSYE 6225 - Custom Web App"
@@ -91,19 +91,32 @@ source "amazon-ebs" "my-ami" {
 }
 
 build {
-  sources = ["source.amazon-ebs.my-ami"]
+  sources = [
+    "source.amazon-ebs.ubuntu"
+    ]
 
   provisioner "file" {
-    source      = "./webapp.zip" # Copy the entire webapp codebase
+    source      = "webapp.zip" # Copy the entire webapp codebase
     destination = "/tmp/webapp.zip"
   }
   provisioner "file" {
-    source      = "./application.service" # Copy the entire webapp codebase
+    source      = "application.service" # Copy the entire webapp codebase
     destination = "/tmp/application.service"
   }
 
   provisioner "shell" {
     inline = [
+      "echo 'Verifying file transfer...'",
+
+      "echo 'Listing /tmp directory after file provisioner:'",
+      "ls -al /tmp", # List files in /tmp to check if webapp.zip and application.service exist
+
+      "if [ -f /tmp/webapp.zip ]; then echo '✅ webapp.zip copied successfully!'; else echo '❌ ERROR: webapp.zip NOT found in /tmp'; exit 1; fi",
+      
+      "if [ -f /tmp/application.service ]; then echo '✅ application.service copied successfully!'; else echo '❌ ERROR: application.service NOT found in /tmp'; exit 1; fi",
+
+      "echo 'File verification completed.'",
+      "echo 'testing'",
       "set -ex",
       "cd /tmp/",
       "ls -al",
@@ -113,9 +126,12 @@ build {
       "sudo groupadd csye6225 || echo 'Group already exists'",
       "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225", # Ensure the user and home directory exist
 
-      # Install Node.js 18.x
+      # Install Node.js .x
+      "pwd",
+      "ls -al",
+      "echo '🛠 Installing Node.js v20...'",
       "sudo apt-get install -y curl",                                      # Install curl if not already installed
-      "curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -", # Use Node.js 18 setup script
+      "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -", # Use Node.js 18 setup script
       "sudo apt-get install -y nodejs",                                    # Install Node.js 18.x
       "sudo npm install -g npm@latest",                                    # Install the latest version of npm compatible with Node.js 18.x",
 
@@ -129,7 +145,7 @@ build {
 
       # Create PostgreSQL database and user with privileges
       "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
-      "sudo -u postgres psql -c \"CREATE USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
+      "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
       "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
       "echo 'Move application started'",
       "sudo mv /tmp/application.service /etc/systemd/system",
@@ -153,16 +169,18 @@ build {
       "cd /opt/csye6225",
       "ls -al",
       "sudo unzip webapp.zip",
-      "cd /opt/csye6225/",
+      "cd /opt/csye6225/webapp",
       "ls -al",
       "echo 'Finished unzip operation'",
 
       "echo 'Setting ownership of files after unzipping'",
-      "sudo chown -R csye6225:csye6225 /opt/csye6225/", # Ensure ownership is set correctly
-      "sudo chmod -R 755 /opt/csye6225/",               # Ensure all files in /opt/csye6225 are accessible and executable
+      "sudo chown -R csye6225:csye6225 /opt/csye6225/webapp", # Ensure ownership is set correctly
+      "sudo chmod -R 755 /opt/csye6225/webapp",               # Ensure all files in /opt/csye6225 are accessible and executable
 
       # Run npm install as csye6225
       "echo 'Running npm install as csye6225'",
+      "pwd",
+      "ls -al",
       "sudo npm install", # Install npm packages as csye6225
       "sudo systemctl daemon-reload",
       "sudo systemctl enable application",
