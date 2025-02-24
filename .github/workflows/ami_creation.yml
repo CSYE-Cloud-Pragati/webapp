@@ -56,30 +56,30 @@ jobs:
       run: npm install
 
     # Step 5: Run SQL to create database and user (if needed)
-    - name: Create database and user
-      run: |
-        PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=postgres -c "
-        DO
-        \$\$ 
-        BEGIN
-            IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${{ secrets.DB_NAME }}') THEN
-                CREATE DATABASE ${{ secrets.DB_NAME }};
-            END IF;
-        END
-        \$\$;
-        "
+    # - name: Create database and user
+    #   run: |
+    #     PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=postgres -c "
+    #     DO
+    #     \$\$ 
+    #     BEGIN
+    #         IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '${{ secrets.DB_NAME }}') THEN
+    #             CREATE DATABASE ${{ secrets.DB_NAME }};
+    #         END IF;
+    #     END
+    #     \$\$;
+    #     "
 
-        PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=${{ secrets.DB_NAME }} -c "
-        DO
-        \$\$ 
-        BEGIN
-            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${{ secrets.DB_USERNAME }}') THEN
-                CREATE USER ${{ secrets.DB_USERNAME }} WITH ENCRYPTED PASSWORD '${{ secrets.DB_PASSWORD }}';
-            END IF;
-        END
-        \$\$;
-        GRANT ALL PRIVILEGES ON DATABASE ${{ secrets.DB_NAME }} TO ${{ secrets.DB_USERNAME }};
-        "
+    #     PGPASSWORD=${{ secrets.DB_PASSWORD }} psql --host=${{ secrets.DB_HOST }} --port=${{ secrets.DB_PORT }} --username=postgres --dbname=${{ secrets.DB_NAME }} -c "
+    #     DO
+    #     \$\$ 
+    #     BEGIN
+    #         IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${{ secrets.DB_USERNAME }}') THEN
+    #             CREATE USER ${{ secrets.DB_USERNAME }} WITH ENCRYPTED PASSWORD '${{ secrets.DB_PASSWORD }}';
+    #         END IF;
+    #     END
+    #     \$\$;
+    #     GRANT ALL PRIVILEGES ON DATABASE ${{ secrets.DB_NAME }} TO ${{ secrets.DB_USERNAME }};
+    #     "
 
 
     # Step 6: Run tests
