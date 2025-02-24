@@ -107,7 +107,7 @@ jobs:
           zip -r webapp.zip .
 
     - name: Upload Zip File
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           name: webapp zip creation
           path: webapp.zip
