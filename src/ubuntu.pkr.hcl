@@ -93,7 +93,7 @@ source "amazon-ebs" "ubuntu" {
 build {
   sources = [
     "source.amazon-ebs.ubuntu"
-    ]
+  ]
 
   provisioner "file" {
     source      = "webapp.zip" # Copy the entire webapp codebase
@@ -112,7 +112,7 @@ build {
       "ls -al /tmp", # List files in /tmp to check if webapp.zip and application.service exist
 
       "if [ -f /tmp/webapp.zip ]; then echo '✅ webapp.zip copied successfully!'; else echo '❌ ERROR: webapp.zip NOT found in /tmp'; exit 1; fi",
-      
+
       "if [ -f /tmp/application.service ]; then echo '✅ application.service copied successfully!'; else echo '❌ ERROR: application.service NOT found in /tmp'; exit 1; fi",
 
       "echo 'File verification completed.'",
