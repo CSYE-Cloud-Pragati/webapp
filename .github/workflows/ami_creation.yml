@@ -43,11 +43,11 @@ jobs:
     steps:
     # Step 1: Checkout the repository code
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     # Step 2: Set up Node.js environment
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: '18'
 
@@ -85,6 +85,12 @@ jobs:
     # Step 6: Run tests
     - name: Run tests
       run: npm test
+      env:
+          DB_USERNAME: ${{secrets.POSTGRES_USER}}
+          DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+          DB_NAME: ${{secrets.POSTGRES_DB}}
+          DB_HOST: "localhost"
+          DB_PORT: "5432"
 
     - name: Create .env file
       run: |
