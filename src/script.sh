@@ -43,17 +43,35 @@ sudo npm install -g npm@latest
 node -v
 npm -v
 
-# Configure PostgreSQL
-echo "Setting up PostgreSQL..."
+log "Installing PostgreSQL..."
+sudo apt-get install -y postgresql postgresql-contrib || handle_error "Couldn't install PostgreSQL"
+
+log "Enabling and starting PostgreSQL..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
 
-echo "Creating PostgreSQL database and user..."
-sudo -u postgres psql <<EOF
-CREATE DATABASE $db_name;
-ALTER USER $db_user WITH ENCRYPTED PASSWORD '$db_password';
-GRANT ALL PRIVILEGES ON DATABASE $db_name TO $db_user;
-EOF
+log "Creating PostgreSQL user and database..."
+# Create user; if it exists, log a note and continue
+sudo -u postgres psql -c "CREATE USER ${db_user} WITH PASSWORD '${db_password}';" || echo "Note: User ${db_user} may already exist. Continuing..."
+# Create database; if it exists, log a note and continue
+sudo -u postgres psql -c "CREATE DATABASE ${db_name};" || echo "Note: Database ${db_name} may already exist. Continuing..."
+# Grant privileges on the database to the user
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};"
+
+log "Setting public schema privileges for ${db_user}..."
+sudo -u postgres psql -d "${db_name}" -c "ALTER SCHEMA public OWNER TO ${db_user};" || echo "Warning: Failed to alter schema owner."
+sudo -u postgres psql -d "${db_name}" -c "GRANT ALL PRIVILEGES ON SCHEMA public TO ${db_user};" || echo "Warning: Failed to grant privileges on schema."
+sudo -u postgres psql -d "${db_name}" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${db_user};" || echo "Warning: Failed to grant privileges on tables."
+sudo -u postgres psql -d "${db_name}" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${db_user};" || echo "Warning: Failed to grant privileges on sequences."
+sudo -u postgres psql -d "${db_name}" -c "GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO ${db_user};" || echo "Warning: Failed to grant privileges on functions."
+sudo -u postgres psql -d "${db_name}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO ${db_user};" || echo "Warning: Failed to set default privileges."
+
+log "Configuring PostgreSQL authentication..."
+sudo bash -c 'echo "local   all             postgres                                peer" > /etc/postgresql/*/main/pg_hba.conf'
+sudo bash -c 'echo "local   all             all                                     md5" >> /etc/postgresql/*/main/pg_hba.conf'
+sudo bash -c 'echo "host    all             all             127.0.0.1/32           md5" >> /etc/postgresql/*/main/pg_hba.conf'
+sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" /etc/postgresql/*/main/postgresql.conf
+sudo systemctl restart postgresql
 
 # Move application service file
 echo "Moving application service file..."
