@@ -119,7 +119,7 @@ build {
   }
 
   provisioner "shell" {
-    script          = "/tmp/script.sh"
+    script          = "script.sh"
     execute_command = "sudo -E /bin/bash {{ .Path }}"
     environment_vars = [
       "db_user=${var.db_user}",
