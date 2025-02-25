@@ -155,6 +155,7 @@ build {
       # Create /opt/csye6225 directory and set permissions
       "echo 'Creating /opt/csye6225 directory'",
       "sudo mkdir -p /opt/csye6225",
+
       "sudo chown csye6225:csye6225 /opt/csye6225", # Set ownership to csye6225
       "sudo chmod 755 /opt/csye6225",               # Ensure the directory is accessible and executable
       "echo 'Switching to csye6225 user and moving webapp.zip'",
@@ -168,7 +169,8 @@ build {
       "sudo chmod -R 755 /opt/csye6225",
       "cd /opt/csye6225",
       "ls -al",
-      "ls -al /opt/csye6225/", # Debugging step
+      "echo 'DEBUGG HERE'",
+      "ls -al /opt/csye6225", # Debugging step
 
       "sudo unzip webapp.zip",
       "ls -al",
