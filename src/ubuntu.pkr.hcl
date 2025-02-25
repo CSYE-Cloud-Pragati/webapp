@@ -126,28 +126,28 @@ build {
 
       "echo 'Creating user and group csye6225'",
       "sudo groupadd csye6225 || echo 'Group already exists'",
-      "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225", 
+      "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225",
 
       # Install Node.js .x
       "echo 'Installing Node.js v20...'",
-      "sudo apt-get install -y curl",                                      
-      "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -", 
-      "sudo apt-get install -y nodejs",                                   
-      "sudo npm install -g npm@latest",                              
+      "sudo apt-get install -y curl",
+      "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -",
+      "sudo apt-get install -y nodejs",
+      "sudo npm install -g npm@latest",
 
-      "node -v", 
-      "npm -v", 
+      "node -v",
+      "npm -v",
 
       # Install PostgreSQL
-      "sudo apt-get install -y postgresql postgresql-contrib unzip", 
-      "sudo systemctl enable postgresql",                            
-      "sudo systemctl start postgresql",     
+      "sudo apt-get install -y postgresql postgresql-contrib unzip",
+      "sudo systemctl enable postgresql",
+      "sudo systemctl start postgresql",
 
       # Create PostgreSQL database and user with privileges
       "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
       "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
       "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
-      
+
       "echo 'Move application started'",
       "sudo mv /tmp/application.service /etc/systemd/system",
       "sudo chmod 644 /etc/systemd/system/application.service",
@@ -156,8 +156,8 @@ build {
       # Create /opt/csye6225 directory and set permissions
       "echo 'Creating /opt/csye6225 directory'",
       "sudo mkdir -p /opt/csye6225",
-      "sudo chown csye6225:csye6225 /opt/csye6225", 
-      "sudo chmod 755 /opt/csye6225",             
+      "sudo chown csye6225:csye6225 /opt/csye6225",
+      "sudo chmod 755 /opt/csye6225",
       "echo 'Switching to csye6225 user and moving webapp.zip'",
       "if [ -f /tmp/webapp.zip ]; then sudo mv /tmp/webapp.zip /opt/csye6225/ && echo 'webapp.zip moved to /opt/csye6225/'; else echo 'Error: /tmp/webapp.zip not found' && ls -l /tmp/ && exit 1; fi",
 
@@ -165,7 +165,7 @@ build {
       "sudo chmod 755 /opt/csye6225/webapp.zip",
 
       "echo 'Unzipping webapp.zip as csye6225'",
-      "sudo chown -R csye6225:csye6225 /opt/csye6225", 
+      "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 755 /opt/csye6225",
       "cd /opt/csye6225",
 
@@ -174,17 +174,17 @@ build {
       "echo 'Finished unzip operation'",
 
       "echo 'Setting ownership of files after unzipping'",
-      "sudo chown -R csye6225:csye6225 /opt/csye6225", 
-      "sudo chmod -R 755 /opt/csye6225",               
+      "sudo chown -R csye6225:csye6225 /opt/csye6225",
+      "sudo chmod -R 755 /opt/csye6225",
 
       # Run npm install as csye6225
       "echo 'Running npm install as csye6225'",
-      "sudo npm install", 
+      "sudo npm install",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable application",
       "sudo systemctl start application",
 
-      
+
       "echo 'Script execution completed successfully!'",
 
     ]
