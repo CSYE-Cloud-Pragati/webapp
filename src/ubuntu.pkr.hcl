@@ -106,51 +106,93 @@ build {
 
   provisioner "shell" {
     inline = [
-      "echo '🔹 Ensuring persistent directory for webapp...'",
-      "sudo mkdir -p /opt/csye6225/webapp",
-      "sudo chown -R csye6225:csye6225 /opt/csye6225",
-      "sudo chmod -R 755 /opt/csye6225",
+      "echo 'Verifying file transfer...'",
 
-      "echo '🔹 Moving application.service...'",
-      "if [ -f /tmp/application.service ]; then sudo mv /tmp/application.service /etc/systemd/system/application.service && sudo chmod 644 /etc/systemd/system/application.service; else echo '❌ ERROR: application.service NOT found!' && exit 1; fi",
+      "echo 'Listing /tmp directory after file provisioner:'",
+      "ls -al /tmp", # List files in /tmp to check if webapp.zip and application.service exist
 
-      "echo '🔹 Moving webapp.zip...'",
-      "if [ -f /tmp/webapp.zip ]; then sudo mv /tmp/webapp.zip /opt/csye6225/webapp.zip; else echo '❌ ERROR: webapp.zip NOT found!' && exit 1; fi",
+      "if [ -f /tmp/webapp.zip ]; then echo '✅ webapp.zip copied successfully!'; else echo '❌ ERROR: webapp.zip NOT found in /tmp'; exit 1; fi",
 
-      "echo '🔹 Extracting webapp.zip...'",
-      "sudo unzip /opt/csye6225/webapp.zip -d /opt/csye6225/webapp",
-      "sudo chown -R csye6225:csye6225 /opt/csye6225/webapp",
-      "sudo chmod -R 755 /opt/csye6225/webapp",
-      "ls -al /opt/csye6225/webapp",
+      "if [ -f /tmp/application.service ]; then echo '✅ application.service copied successfully!'; else echo '❌ ERROR: application.service NOT found in /tmp'; exit 1; fi",
 
-      "echo '🔹 Flushing file system buffers...'",
-      "sync",
+      "echo 'File verification completed.'",
+      "echo 'testing'",
+      "set -ex",
+      "cd /tmp/",
+      "ls -al",
+      // "sudo apt-get update -y",
+      "sudo apt-get install -y unzip",
+      "echo 'Creating user and group csye6225'",
+      "sudo groupadd csye6225 || echo 'Group already exists'",
+      "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225", # Ensure the user and home directory exist
 
-      "echo '🔹 Installing Node.js v20...'",
-      "sudo apt-get install -y curl",
-      "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -",
-      "sudo apt-get install -y nodejs",
-      "sudo npm install -g npm@latest",
+      # Install Node.js .x
+      "pwd",
+      "ls -al",
+      "echo '🛠 Installing Node.js v20...'",
+      "sudo apt-get install -y curl",                                      # Install curl if not already installed
+      "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -", # Use Node.js 18 setup script
+      "sudo apt-get install -y nodejs",                                    # Install Node.js 18.x
+      "sudo npm install -g npm@latest",                                    # Install the latest version of npm compatible with Node.js 18.x",
+
       "node -v", # Verify Node.js installation
       "npm -v",  # Verify npm installation
 
-      "echo '🔹 Installing PostgreSQL...'",
-      "sudo apt-get install -y postgresql postgresql-contrib unzip",
-      "sudo systemctl enable postgresql",
-      "sudo systemctl start postgresql",
+      # Install PostgreSQL
+      "sudo apt-get install -y postgresql postgresql-contrib unzip", # Install PostgreSQL and unzip
+      "sudo systemctl enable postgresql",                            # Ensure PostgreSQL starts on boot
+      "sudo systemctl start postgresql",                             # Start PostgreSQL
 
-      "echo '🔹 Setting up PostgreSQL Database...'",
+      # Create PostgreSQL database and user with privileges
       "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
       "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
       "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
+      "echo 'Move application started'",
+      "sudo mv /tmp/application.service /etc/systemd/system",
+      "sudo chmod 644 /etc/systemd/system/application.service",
+      "echo 'Move application completed'",
 
-      "echo '🔹 Enabling application service...'",
+      # Create /opt/csye6225 directory and set permissions
+      "echo 'Creating /opt/csye6225 directory'",
+      "sudo mkdir -p /opt/csye6225",
+      "sudo chown csye6225:csye6225 /opt/csye6225", # Set ownership to csye6225
+      "sudo chmod 755 /opt/csye6225",               # Ensure the directory is accessible and executable
+      "echo 'Switching to csye6225 user and moving webapp.zip'",
+      "if [ -f /tmp/webapp.zip ]; then sudo mv /tmp/webapp.zip /opt/csye6225/ && echo 'webapp.zip moved to /opt/csye6225/'; else echo 'Error: /tmp/webapp.zip not found' && ls -l /tmp/ && exit 1; fi",
+
+      "sudo chown -R csye6225:csye6225 /opt/csye6225",
+      "sudo chmod 755 /opt/csye6225/webapp.zip",
+
+      "echo 'Unzipping webapp.zip as csye6225'",
+      "sudo chown -R csye6225:csye6225 /opt/csye6225", # Ensure ownership is set correctly
+      "sudo chmod -R 755 /opt/csye6225",
+      "cd /opt/csye6225",
+      "ls -al",
+      "ls -al /opt/csye6225/", # Debugging step
+
+      "sudo unzip webapp.zip",
+      "ls -al",
+      "echo 'Finished unzip operation'",
+
+      "echo 'Setting ownership of files after unzipping'",
+      "sudo chown -R csye6225:csye6225 /opt/csye6225", # Ensure ownership is set correctly
+      "sudo chmod -R 755 /opt/csye6225",               # Ensure all files in /opt/csye6225 are accessible and executable
+
+      # Run npm install as csye6225
+      "echo 'Running npm install as csye6225'",
+      "pwd",
+      "ls -al",
+      "sudo npm install", # Install npm packages as csye6225
       "sudo systemctl daemon-reload",
       "sudo systemctl enable application",
+      "sudo systemctl start application",
 
-      "echo '🔹 Final File Check Before AMI Capture...'",
-      "ls -al /opt/csye6225",
-      "ls -al /etc/systemd/system/application.service",
+
+      # Debugging to verify directory structure and files
+      "echo 'Debugging the directory after npm install'",
+
     ]
   }
+
+
 }
