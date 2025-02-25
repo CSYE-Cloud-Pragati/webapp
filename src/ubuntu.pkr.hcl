@@ -106,12 +106,12 @@ build {
   }
 
   provisioner "file" {
-    source      = "script.sh"  # Ensure this is in the correct location
+    source      = "script.sh" # Ensure this is in the correct location
     destination = "/tmp/script.sh"
   }
 
   provisioner "shell" {
-    script = "/tmp/script.sh"
+    script          = "/tmp/script.sh"
     execute_command = "sudo -E /bin/bash {{ .Path }}"
     environment_vars = [
       "db_user=${var.db_user}",
