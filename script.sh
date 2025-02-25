@@ -1,80 +1,95 @@
 #!/bin/bash
+set -ex
 
-set -e
+echo "Verifying file transfer..."
+ls -al /tmp
 
-# Define a simple log function
-log() {
-    echo "[INFO] $1"
-}
+if [ -f /tmp/webapp.zip ]; then 
+  echo "✅ webapp.zip copied successfully!"
+else 
+  echo "❌ ERROR: webapp.zip NOT found in /tmp"
+  exit 1
+fi
 
-# Define a simple error handling function
-handle_error() {
-    echo "[ERROR] $1" >&2
-    exit 1
-}
+if [ -f /tmp/application.service ]; then 
+  echo "✅ application.service copied successfully!"
+else 
+  echo "❌ ERROR: application.service NOT found in /tmp"
+  exit 1
+fi
 
-sudo apt update -y
-sudo apt upgrade -y
-sudo apt install -y git curl postgresql postgresql-contrib nodejs npm unzip
+echo "File verification completed."
+echo "Testing..."
 
-sudo systemctl start postgresql 
+cd /tmp/
+ls -al
+
+# Install necessary dependencies
+sudo apt-get update -y
+sudo apt-get install -y unzip curl postgresql postgresql-contrib
+
+# Create a user and group for the application
+echo "Creating user and group csye6225"
+sudo groupadd csye6225 || echo "Group already exists"
+sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225
+
+# Install Node.js
+echo "🛠 Installing Node.js v20..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm install -g npm@latest
+
+# Verify installations
+node -v
+npm -v
+
+# Configure PostgreSQL
+echo "Setting up PostgreSQL..."
 sudo systemctl enable postgresql
+sudo systemctl start postgresql
+sudo -u postgres psql -c "CREATE DATABASE ${db_name};"
+sudo -u postgres psql -c "ALTER USER ${db_user} WITH ENCRYPTED PASSWORD '${db_password}';"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};"
 
+# Move application service file
+echo "Moving application service file..."
+sudo mv /tmp/application.service /etc/systemd/system/application.service
+sudo chmod 644 /etc/systemd/system/application.service
 
+# Set up application directory
+echo "Creating /opt/csye6225 directory..."
+sudo mkdir -p /opt/csye6225
+sudo chown csye6225:csye6225 /opt/csye6225
+sudo chmod 755 /opt/csye6225
 
-# Load environment variables from .env
-source .env
+# Move and unzip web application
+echo "Moving webapp.zip..."
+if [ -f /tmp/webapp.zip ]; then 
+  sudo mv /tmp/webapp.zip /opt/csye6225/
+  echo "webapp.zip moved successfully!"
+else 
+  echo "Error: /tmp/webapp.zip not found"
+  ls -l /tmp/
+  exit 1
+fi
 
-# Database operations - with better error messages
-log "Creating database and user..."
-sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" || log "Note: No existing database to drop"
-sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" || handle_error "Couldn't create database"
+echo "Unzipping webapp.zip..."
+cd /opt/csye6225
+sudo unzip webapp.zip
+ls -al
 
-# Create database user if it doesn't exist
-sudo -u postgres psql -c "DO \$\$ BEGIN 
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_user WHERE usename = '$DB_USER') THEN 
-        CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
-    END IF; 
-END \$\$;"
+echo "Setting ownership and permissions..."
+sudo chown -R csye6225:csye6225 /opt/csye6225
+sudo chmod -R 755 /opt/csye6225
 
-# Update the user's password to ensure it matches the .env file
-sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
-
-# Restart PostgreSQL to apply changes
-sudo systemctl restart postgresql
-
-# Grant privileges on the database
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" || handle_error "Couldn't grant privileges on database"
-
-# Change the owner of the public schema to $DB_USER
-sudo -u postgres psql -d "$DB_NAME" -c "ALTER SCHEMA public OWNER TO $DB_USER;" || handle_error "Couldn't change owner of schema public"
-
-# Grant privileges to the public schema and its objects
-sudo -u postgres psql -d "$DB_NAME" -c "GRANT USAGE, CREATE ON SCHEMA public TO $DB_USER;" || handle_error "Couldn't grant schema privileges"
-sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO $DB_USER;" || handle_error "Couldn't grant table privileges"
-sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO $DB_USER;" || handle_error "Couldn't grant sequence privileges"
-sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO $DB_USER;" || handle_error "Couldn't grant function privileges"
-sudo -u postgres psql -d "$DB_NAME" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $DB_USER;" || handle_error "Couldn't set default privileges"
-
-
-
-echo "Creating application user and group..."
-sudo groupadd -f healthapp_group
-sudo useradd -m -g healthapp_group -s /bin/bash healthapp_user
-
-echo "Setting up application directory..."
-unzip -o webapp.zip -d /opt/csye6225/ || handle_error "Couldn't unzip application"
-
-# Copy the .env file into the application directory (assuming the unzipped folder is named 'webapp')
-cp .env /opt/csye6225/webapp/ || handle_error "Couldn't copy .env file"
-
-
-echo "Updating permissions..." 
-sudo chown -R healthapp_user:healthapp_group "/opt/csye6225"
-sudo chmod -R 755 "/opt/csye6225"
-
-echo "Installing Node.js dependencies in /opt/csye6225/webapp..." 
-cd "/opt/csye6225/webapp"
+# Install application dependencies
+echo "Running npm install..."
 sudo npm install
 
-echo "Application setup completed!"
+# Start application service
+echo "Starting application service..."
+sudo systemctl daemon-reload
+sudo systemctl enable application
+sudo systemctl start application
+
+echo "Script execution completed successfully!"
