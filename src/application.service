@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 User=csye6225
-WorkingDirectory=/opt/csye6225/webapp
+WorkingDirectory=/opt/csye6225
 ExecStart=/usr/bin/npm run start
 Restart=always
 
