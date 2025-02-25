@@ -34,7 +34,7 @@ sudo groupadd csye6225 || echo "Group already exists"
 sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225
 
 # Install Node.js
-echo "🛠 Installing Node.js v20..."
+echo " Installing Node.js v20..."
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 sudo npm install -g npm@latest
@@ -47,9 +47,13 @@ npm -v
 echo "Setting up PostgreSQL..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
-sudo -u postgres psql -c "CREATE DATABASE ${db_name};"
-sudo -u postgres psql -c "ALTER USER ${db_user} WITH ENCRYPTED PASSWORD '${db_password}';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};"
+
+echo "Creating PostgreSQL database and user..."
+sudo -u postgres psql <<EOF
+CREATE DATABASE $db_name;
+ALTER USER $db_user WITH ENCRYPTED PASSWORD '$db_password';
+GRANT ALL PRIVILEGES ON DATABASE $db_name TO $db_user;
+EOF
 
 # Move application service file
 echo "Moving application service file..."
