@@ -106,8 +106,16 @@ build {
   }
 
   provisioner "file" {
-    source      = "script.sh" # Ensure this is in the correct location
+    source      = "script.sh" # Since it's inside src/, it should be referenced directly
     destination = "/tmp/script.sh"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "echo '🔍 Verifying file transfer...'",
+      "ls -al /tmp",            # Debugging step to verify script presence
+      "chmod +x /tmp/script.sh" # Grant execution permission
+    ]
   }
 
   provisioner "shell" {
