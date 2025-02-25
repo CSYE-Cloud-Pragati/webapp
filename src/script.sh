@@ -43,16 +43,14 @@ sudo npm install -g npm@latest
 node -v
 npm -v
 
-log "Installing PostgreSQL..."
-sudo apt-get install -y postgresql postgresql-contrib || handle_error "Couldn't install PostgreSQL"
-
-log "Enabling and starting PostgreSQL..."
+# Configure PostgreSQL
+echo "Setting up PostgreSQL..."
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
 
 log "Creating PostgreSQL user and database..."
 # Create user; if it exists, log a note and continue
-sudo -u postgres psql -c "CREATE USER ${db_user} WITH PASSWORD '${db_password}';" || echo "Note: User ${db_user} may already exist. Continuing..."
+sudo -u postgres psql -c "ALTER USER ${db_user} WITH PASSWORD '${db_password}';" || echo "Note: User ${db_user} may already exist. Continuing..."
 # Create database; if it exists, log a note and continue
 sudo -u postgres psql -c "CREATE DATABASE ${db_name};" || echo "Note: Database ${db_name} may already exist. Continuing..."
 # Grant privileges on the database to the user
@@ -72,6 +70,7 @@ sudo bash -c 'echo "local   all             all                                 
 sudo bash -c 'echo "host    all             all             127.0.0.1/32           md5" >> /etc/postgresql/*/main/pg_hba.conf'
 sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = 'localhost'/" /etc/postgresql/*/main/postgresql.conf
 sudo systemctl restart postgresql
+
 
 # Move application service file
 echo "Moving application service file..."
