@@ -107,8 +107,6 @@ jobs:
             -var 'db_password=${{ secrets.DB_PASSWORD }}' \
             -var 'aws_region=${{ secrets.AWS_REGION }}' \
             -var 'source_ami=${{ secrets.SOURCE_AMI }}' \
-            -var 'ssh_username=${{ secrets.SSH_USERNAME }}' \
-            -var 'subnet_id=${{ secrets.SUBNET_ID }}' \
             -var 'aws_access_key=${{ secrets.AWS_ACCESS_KEY }}' \
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
