@@ -86,9 +86,8 @@ source "googlecompute" "gcp-image" {
   image_name          = "csye6225-gcp-webapp"
   machine_type        = "e2-medium"
   zone                = var.gcp_zone
-  ssh_username        = var.ssh_username
-  image_family        = "custom-images"
-  image_description   = "Custom Image for CSYE 6225 on GCP"
+  ssh_username        = "ubuntu"
+  image_family        = "webapp"
   metadata = {
     enable-oslogin = "FALSE"
   }
@@ -117,7 +116,7 @@ source "amazon-ebs" "ubuntu" {
 
   instance_type = "t2.micro"
   source_ami    = var.source_ami
-  ssh_username  = var.ssh_username
+  ssh_username  = "ubuntu"
   subnet_id     = var.subnet_id
 
   launch_block_device_mappings {
