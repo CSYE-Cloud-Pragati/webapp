@@ -41,29 +41,3 @@ jobs:
           DB_NAME: ${{secrets.POSTGRES_DB}}
           DB_HOST: "localhost"
           DB_PORT: "5432"
-
-      - name: Set up Packer
-        uses: hashicorp/setup-packer@main
-        id: setup
-        with:
-          version: 1.7.2
-
-
-      - name: Format Packer template
-        id: fmt
-        working-directory: ./src
-        run: |
-            packer fmt -check -recursive .
-            if [ $? -ne 0 ]; then
-              echo "Packer template files need to be formatted. Please run 'packer fmt' locally."
-              exit 1
-            fi
-
-      - name: Validate Packer template
-        working-directory: ./src
-        run: |
-            packer validate -syntax-only .
-            if [ $? -ne 0 ]; then
-              echo "Packer validation failed."
-              exit 1
-            fi
