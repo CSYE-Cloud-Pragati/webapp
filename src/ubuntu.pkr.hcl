@@ -80,10 +80,10 @@ locals {
 }
 
 # GCP Builder Configuration
-source "googlecompute" "gcp_image" {
+source "googlecompute" "gcp-image" {
   project_id          = var.project_id
   source_image_family = "ubuntu-2204-lts"
-  image_name          = "csye6225-gcp-webapp-${local.sanitized_timestamp}"
+  image_name          = "csye6225-gcp-webapp"
   machine_type        = "e2-medium"
   zone                = var.gcp_zone
   ssh_username        = "ubuntu"
@@ -126,7 +126,7 @@ source "amazon-ebs" "ubuntu" {
 build {
   sources = [
     "source.amazon-ebs.ubuntu",
-    "source.googlecompute.gcp_image"
+    "source.googlecompute.gcp-image"
   ]
 
   provisioner "file" {
