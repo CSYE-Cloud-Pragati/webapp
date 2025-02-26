@@ -86,7 +86,7 @@ source "googlecompute" "gcp-image" {
   image_name          = "csye6225-gcp-webapp"
   machine_type        = "e2-medium"
   zone                = var.gcp_zone
-  ssh_username        = "ubuntu"
+  ssh_username        = var.ssh_username
   image_family        = "custom-images"
   image_description   = "Custom Image for CSYE 6225 on GCP"
 }
