@@ -61,49 +61,38 @@ variable "aws_secret_key" {
   type = string
 }
 
-# variable "project_id" {
-#   type    = string
-#   default = "csye-6225-452005"
-# }
 
-# variable "gcp_region" {
-#   type    = string
-#   default = "us-central1"
-# }
+# GCP Variables
+variable "project_id" {
+  type    = string
+  default = "csye-6225-452005"
+}
 
-# variable "gcp_zone" {
-#   type    = string
-#   default = "us-central1-a"
-# }
 
-# variable "gcp_source_image" {
-#   type    = string
-#   default = "ubuntu-2004-focal-v20240123"
-# }
-
-# variable "service_account_file" {
-#   type    = string
-#   default = "packer-key.json"
-# }
+variable "gcp_zone" {
+  type    = string
+  default = "us-central1-a"
+}
 
 
 locals {
   sanitized_timestamp = replace(timestamp(), ":", "-") # Replace colons with dashes to make it valid
 }
 
-# # GCP Builder Configuration
-# source "googlecompute" "gcp_image" {
-#   project_id           = var.project_id
-#   source_image         = var.gcp_source_image
-#   image_name           = "csye6225-gcp-webapp-${local.sanitized_timestamp}"
-#   machine_type         = "e2-micro"
-#   zone                 = var.gcp_zone
-#   ssh_username         = "packer"
-#   image_family         = "custom-images"
-#   image_description    = "Custom Image for CSYE 6225 on GCP"
-#   service_account_file = var.service_account_file
-# }
+# GCP Builder Configuration
+source "googlecompute" "gcp_image" {
+  project_id          = var.project_id
+  source_image_family = "ubuntu-2204-lts"
+  image_name          = "csye6225-gcp-webapp-${local.sanitized_timestamp}"
+  machine_type        = "e2-medium"
+  zone                = var.gcp_zone
+  ssh_username        = "ubuntu"
+  image_family        = "custom-images"
+  image_description   = "Custom Image for CSYE 6225 on GCP"
+}
 
+
+# Amazon AMI Builder
 source "amazon-ebs" "ubuntu" {
   region          = var.aws_region
   ami_name        = "csye6225-custom-webapp-${local.sanitized_timestamp}"
@@ -137,7 +126,7 @@ source "amazon-ebs" "ubuntu" {
 build {
   sources = [
     "source.amazon-ebs.ubuntu",
-    # "source.googlecompute.gcp_image"
+    "source.googlecompute.gcp_image"
   ]
 
   provisioner "file" {
