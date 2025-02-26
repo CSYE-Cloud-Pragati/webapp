@@ -82,25 +82,25 @@ variable "gcp_source_image" {
 }
 
 variable "service_account_file" {
-  type = string
+  type    = string
   default = "packer-key.json"
 }
 
 
 locals {
   sanitized_timestamp = replace(timestamp(), ":", "-") # Replace colons with dashes to make it valid
-  }
+}
 
 # GCP Builder Configuration
 source "googlecompute" "gcp_image" {
-  project_id          = var.project_id
-  source_image        = var.gcp_source_image
-  image_name          = "csye6225-gcp-webapp-${local.sanitized_timestamp}"
-  machine_type        = "e2-micro"
-  zone                = var.gcp_zone
-  ssh_username        = "packer"
-  image_family        = "custom-images"
-  image_description   = "Custom Image for CSYE 6225 on GCP"
+  project_id           = var.project_id
+  source_image         = var.gcp_source_image
+  image_name           = "csye6225-gcp-webapp-${local.sanitized_timestamp}"
+  machine_type         = "e2-micro"
+  zone                 = var.gcp_zone
+  ssh_username         = "packer"
+  image_family         = "custom-images"
+  image_description    = "Custom Image for CSYE 6225 on GCP"
   service_account_file = var.service_account_file
 }
 
