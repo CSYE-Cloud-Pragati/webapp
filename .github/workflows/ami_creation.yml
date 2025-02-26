@@ -39,6 +39,9 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
       AMI_USERS: ${{ secrets.AMI_USERS }}
       AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
+      GCP_SA_KEY:  ${{ secrets.GCP_SA_KEY}}
+      GCP_ZONE: ${{ secrets.GCP_ZONE}}
 
     steps:
 
@@ -57,6 +60,8 @@ jobs:
         echo "AUTHENTICATION_ENABLED=${{ secrets.AUTHENTICATION_ENABLED }}" >> .env
         echo "PORT=8080" >> .env
 
+    
+
     # Step 3: Zip creation 
     - name: Create Zip File
       run: |
@@ -74,6 +79,17 @@ jobs:
           pwd
           sudo mv /home/runner/work/webapp/webapp/webapp.zip /home/runner/work/webapp/webapp/src/
 
+    - name: Google Auth
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
     # Step 4: Run the packer
     - name: Run Packer
       run: |
@@ -85,7 +101,7 @@ jobs:
           pwd
           cd src
           packer init ubuntu.pkr.hcl
-           packer build \
+          packer build \
             -var 'db_name=${{ secrets.DB_NAME }}' \
             -var 'db_user=${{ secrets.DB_USERNAME }}' \
             -var 'db_password=${{ secrets.DB_PASSWORD }}' \
