@@ -1,4 +1,4 @@
-name: ami_creation
+name: ami-build-ci
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Run Tests
+    name: ami-build
     runs-on: ubuntu-latest
     if: github.repository == 'CSYE-Cloud-Pragati/webapp'
 
@@ -41,30 +41,12 @@ jobs:
       AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
 
     steps:
+
     # Step 1: Checkout the repository code
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Step 2: Set up Node.js environment
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    # Step 3: Install dependencies
-    - name: Install dependencies
-      run: npm install
-
-    # Step 6: Run tests
-    - name: Run tests
-      run: npm test
-      env:
-          DB_USERNAME: ${{secrets.POSTGRES_USER}}
-          DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
-          DB_NAME: ${{secrets.POSTGRES_DB}}
-          DB_HOST: "localhost"
-          DB_PORT: "5432"
-
+    # Step 2: env file creation
     - name: Create .env file
       run: |
         echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
@@ -74,13 +56,8 @@ jobs:
         echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
         echo "AUTHENTICATION_ENABLED=${{ secrets.AUTHENTICATION_ENABLED }}" >> .env
         echo "PORT=8080" >> .env
-        
 
-    - name: List Files and delete node modules
-      run: |
-          sudo rm -rf node_modules
-          ls -al
-
+    # Step 3: Zip creation 
     - name: Create Zip File
       run: |
           zip -r webapp.zip .
@@ -96,6 +73,8 @@ jobs:
           ls
           pwd
           sudo mv /home/runner/work/webapp/webapp/webapp.zip /home/runner/work/webapp/webapp/src/
+
+    # Step 4: Run the packer
     - name: Run Packer
       run: |
           # Install Packer

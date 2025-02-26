@@ -1,0 +1,35 @@
+name: packer-ci
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  packer-format-validate:
+    name: "Packer Format & Validate"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: 1.7.2
+
+      - name: Format Packer templates
+        run: |
+          packer fmt -check -recursive .
+          if [ $? -ne 0 ]; then
+            echo "Packer templates need to be formatted. Run 'packer fmt' locally."
+            exit 1
+          fi
+
+      - name: Validate Packer templates
+        run: |
+          packer validate -syntax-only src/
+          if [ $? -ne 0 ]; then
+            echo "Packer validation failed."
+            exit 1
+          fi
