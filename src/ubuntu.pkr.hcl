@@ -89,7 +89,12 @@ source "googlecompute" "gcp-image" {
   ssh_username        = var.ssh_username
   image_family        = "custom-images"
   image_description   = "Custom Image for CSYE 6225 on GCP"
+  metadata = {
+    enable-oslogin = "FALSE"
+  }
 }
+
+
 
 
 # Amazon AMI Builder
