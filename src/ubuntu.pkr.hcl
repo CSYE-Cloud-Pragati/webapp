@@ -26,7 +26,7 @@ variable "db_user" {
 
 variable "ami_users" {
   type    = list(string)
-  default = split(",", env("AMI_USERS"))
+  default = jsondecode(env("AMI_USERS"))
 }
 
 variable "db_password" {
