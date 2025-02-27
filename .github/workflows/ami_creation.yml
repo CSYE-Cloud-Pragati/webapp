@@ -111,3 +111,30 @@ jobs:
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
+
+
+    - name: Copy GCP Image to Demo Project
+      env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_DEMO_PROJECT_ID: ${{ secrets.GCP_DEMO_PROJECT_ID }}
+      run: |
+          echo "Retrieving latest GCP machine image..."
+          IMAGE_NAME=$(gcloud compute images list \
+            --project=${GCP_PROJECT_ID} \
+            --filter="family=webapp" \
+            --sort-by=~creationTimestamp \
+            --limit=1 \
+            --format="value(name)")
+
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "No GCP machine image found in the 'webapp' family"
+            exit 1
+          fi
+
+          echo "Copying image from DEV ($GCP_PROJECT_ID) to DEMO ($GCP_DEMO_PROJECT_ID)..."
+          gcloud compute images create "webapp-$(date +%s)" \
+            --source-image="$IMAGE_NAME" \
+            --source-image-project="$GCP_PROJECT_ID" \
+            --project="$GCP_DEMO_PROJECT_ID" \
+            --family=webapp \
+            --description="Copied from DEV on $(date)"
