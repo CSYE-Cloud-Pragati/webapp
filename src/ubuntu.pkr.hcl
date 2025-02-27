@@ -4,11 +4,12 @@ packer {
       version = ">= 1.2.8"
       source  = "github.com/hashicorp/amazon"
     }
-    # # GCP
-    # googlecompute = {
-    #   version = ">= 1.0.0"
-    #   source  = "github.com/hashicorp/googlecompute"
-    # }
+
+    # GCP
+    googlecompute = {
+      version = ">= 1.0.0"
+      source  = "github.com/hashicorp/googlecompute"
+    }
   }
 }
 
@@ -65,7 +66,7 @@ variable "aws_secret_key" {
 # GCP Variables
 variable "project_id" {
   type    = string
-  default = "csye-6225-452005"
+  default = "webapp-452122"
 }
 
 
