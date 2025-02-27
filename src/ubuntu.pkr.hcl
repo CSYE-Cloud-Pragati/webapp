@@ -157,6 +157,7 @@ build {
       "ls -al",
 
       "sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list",
+      "sudo rm -f /etc/apt/apt.conf.d/50command-not-found",
 
 
       "sudo apt-get update -y",
