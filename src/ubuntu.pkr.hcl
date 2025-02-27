@@ -159,6 +159,9 @@ build {
       "cd /tmp/",
       "ls -al",
 
+      "sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list",
+
+
       "sudo apt-get update -y",
       "sudo apt-get upgrade -y",
       "sudo apt-get install -y unzip",
