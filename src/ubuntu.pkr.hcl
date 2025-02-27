@@ -26,7 +26,7 @@ variable "db_user" {
 
 variable "ami_users" {
   type    = string
-  default = "dev"
+  default = "324037307781"
 }
 
 variable "db_password" {
@@ -105,6 +105,10 @@ source "amazon-ebs" "ubuntu" {
 
   ami_regions = [
     "us-east-1"
+  ]
+
+  ami_users = [
+    var.ami_users
   ]
 
   access_key = var.aws_access_key # Reference the access key variable
