@@ -113,33 +113,33 @@ jobs:
             ubuntu.pkr.hcl
 
 
-    - name: Share GCP Image with Demo Project
-      env:
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        GCP_DEMO_PROJECT_ID: ${{ secrets.GCP_DEMO_PROJECT_ID }}
-      run: |
-        echo "Retrieving latest GCP machine image in Dev project..."
-        IMAGE_NAME=$(gcloud compute images list \
-          --project=${GCP_PROJECT_ID} \
-          --filter="family=webapp" \
-          --sort-by=~creationTimestamp \
-          --limit=1 \
-          --format="value(name)")
+    # - name: Share GCP Image with Demo Project
+    #   env:
+    #     GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    #     GCP_DEMO_PROJECT_ID: ${{ secrets.GCP_DEMO_PROJECT_ID }}
+    #   run: |
+    #     echo "Retrieving latest GCP machine image in Dev project..."
+    #     IMAGE_NAME=$(gcloud compute images list \
+    #       --project=${GCP_PROJECT_ID} \
+    #       --filter="family=webapp" \
+    #       --sort-by=~creationTimestamp \
+    #       --limit=1 \
+    #       --format="value(name)")
 
-        if [ -z "$IMAGE_NAME" ]; then
-          echo "No GCP machine image found in the 'webapp' family"
-          exit 1
-        fi
+    #     if [ -z "$IMAGE_NAME" ]; then
+    #       echo "No GCP machine image found in the 'webapp' family"
+    #       exit 1
+    #     fi
 
-        echo "Retrieving Demo project number..."
-        DEMO_PROJECT_NUMBER=$(gcloud projects describe $GCP_DEMO_PROJECT_ID --format='value(projectNumber)')
+    #     echo "Retrieving Demo project number..."
+    #     DEMO_PROJECT_NUMBER=$(gcloud projects describe $GCP_DEMO_PROJECT_ID --format='value(projectNumber)')
 
-        echo "Demo project number - $DEMO_PROJECT_NUMBER"
+    #     echo "Demo project number - $DEMO_PROJECT_NUMBER"
         
-        echo "Sharing image '$IMAGE_NAME' with Demo project '$GCP_DEMO_PROJECT_ID'..."
-        gcloud compute images add-iam-policy-binding "$IMAGE_NAME" \
-          --project="$GCP_PROJECT_ID" \
-          --member="serviceAccount:${DEMO_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-          --role="roles/compute.imageUser"
+    #     echo "Sharing image '$IMAGE_NAME' with Demo project '$GCP_DEMO_PROJECT_ID'..."
+    #     gcloud compute images add-iam-policy-binding "$IMAGE_NAME" \
+    #       --project="$GCP_PROJECT_ID" \
+    #       --member="serviceAccount:${DEMO_PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    #       --role="roles/compute.imageUser"
           
-        echo "Successfully shared $IMAGE_NAME with project $GCP_DEMO_PROJECT_ID."
+    #     echo "Successfully shared $IMAGE_NAME with project $GCP_DEMO_PROJECT_ID."
