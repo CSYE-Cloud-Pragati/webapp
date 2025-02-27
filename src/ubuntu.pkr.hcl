@@ -25,8 +25,8 @@ variable "db_user" {
 }
 
 variable "ami_users" {
-  type    = string
-  default = "324037307781"
+  type    = list(string)
+  default = ["324037307781"]
 }
 
 variable "db_password" {
@@ -106,9 +106,7 @@ source "amazon-ebs" "ubuntu" {
     "us-east-1"
   ]
 
-  ami_users = [
-    var.ami_users
-  ]
+  ami_users = var.ami_users
 
   access_key = var.aws_access_key # Reference the access key variable
   secret_key = var.aws_secret_key # Reference the secret key variable
