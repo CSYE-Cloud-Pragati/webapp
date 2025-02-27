@@ -75,16 +75,15 @@ variable "gcp_zone" {
   default = "us-central1-a"
 }
 
-
 locals {
-  sanitized_timestamp = replace(timestamp(), ":", "-") # Replace colons with dashes to make it valid
+  formatted_time = formatdate("2006-01-02-150405", timestamp())
 }
 
 # GCP Builder Configuration
 source "googlecompute" "gcp-image" {
   project_id          = var.project_id
   source_image_family = "ubuntu-2204-lts"
-  image_name          = "csye6225-gcp-webapp"
+  image_name          = "csye6225-custom-webapp-${local.formatted_time}"
   machine_type        = "e2-medium"
   zone                = var.gcp_zone
   ssh_username        = "ubuntu"
@@ -100,7 +99,7 @@ source "googlecompute" "gcp-image" {
 # Amazon AMI Builder
 source "amazon-ebs" "ubuntu" {
   region          = var.aws_region
-  ami_name        = "csye6225-custom-webapp-${local.sanitized_timestamp}"
+  ami_name        = "csye6225-custom-webapp-${local.formatted_time}"
   ami_description = "AMI for CSYE 6225 - Custom Web App"
 
   ami_regions = [
