@@ -26,7 +26,7 @@ variable "db_user" {
 
 variable "ami_users" {
   type    = list(string)
-  default = jsondecode(env("AMI_USERS"))
+  default = []
 }
 
 variable "db_password" {
@@ -120,7 +120,7 @@ source "amazon-ebs" "ubuntu" {
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 8
+    volume_size           = 25
     volume_type           = "gp2"
   }
 }
