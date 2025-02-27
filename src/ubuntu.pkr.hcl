@@ -79,7 +79,7 @@ variable "gcp_zone" {
 source "googlecompute" "gcp-image" {
   project_id          = var.project_id
   source_image_family = "ubuntu-2204-lts"
-  image_name          = "webapp-gcp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
+  image_name          = "webapp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
   machine_type        = "e2-medium"
   zone                = var.gcp_zone
   ssh_username        = "ubuntu"
