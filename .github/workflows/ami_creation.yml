@@ -109,5 +109,5 @@ jobs:
             -var 'source_ami=${{ secrets.SOURCE_AMI }}' \
             -var 'aws_access_key=${{ secrets.AWS_ACCESS_KEY }}' \
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
-            -var 'ami_users=["${{ secrets.AMI_USERS }}"]' \
+            -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
