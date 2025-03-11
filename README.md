@@ -15,7 +15,7 @@ This endpoint performs the following actions:
 - **Restricts authentication usage**, returning **HTTP 403 Forbidden** for any request with authentication headers.
 - **Accepts only the `GET` method**, returning **HTTP 405 Method Not Allowed** for all others.
 - **Prevents response caching** by setting appropriate headers.
-
+   
 ---
 
 ## **Example Requests and Responses**
