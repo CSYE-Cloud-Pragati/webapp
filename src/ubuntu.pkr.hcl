@@ -179,14 +179,14 @@ build {
       "npm -v",
 
       # Install PostgreSQL
-      "sudo apt-get install -y postgresql postgresql-contrib unzip",
-      "sudo systemctl enable postgresql",
-      "sudo systemctl start postgresql",
+      # "sudo apt-get install -y postgresql postgresql-contrib unzip",
+      # "sudo systemctl enable postgresql",
+      # "sudo systemctl start postgresql",
 
       # Create PostgreSQL database and user with privileges
-      "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
-      "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
-      "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
+      # "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
+      # "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
+      # "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
 
       "echo 'Move application started'",
       "sudo mv /tmp/application.service /etc/systemd/system",
