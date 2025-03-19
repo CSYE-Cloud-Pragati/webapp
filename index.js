@@ -1,6 +1,7 @@
 const express = require('express');
 const sequelize = require('./src/config/database');
 const HealthCheck = require('./src/models/healthCheck');
+const fileRoutes = require("./src/routes/file"); // Import file upload API
 
 const app = express();
 const port = 8080;
@@ -22,8 +23,6 @@ app.use((req, res, next) => {
         next();
     });
 });
-
-
 
 app.head('/healthz', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -49,6 +48,9 @@ app.get('/healthz', async (req, res) => {
         res.status(503).send();
     }
 });
+
+// File Upload Routes
+app.use("/v1/file", fileRoutes);
 
 app.get('*', (req, res) => {
     res.status(404).send();
