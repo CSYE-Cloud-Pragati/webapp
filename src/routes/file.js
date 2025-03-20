@@ -6,14 +6,26 @@ const path = require("path");
 const s3 = require("../config/s3");
 const File = require("../models/file");
 
-const upload = multer({ storage: multer.memoryStorage() });
-
+// Configure multer
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image files are allowed"), false);
+    }
+    cb(null, true);
+  },
+});
 
 // POST /v1/file
 router.post("/", upload.single("profilePic"), async (req, res) => {
   try {
+    if (!process.env.S3_BUCKET) {
+      return res.status(500).send(); // No body for server errors
+    }
     if (!req.file) {
-      return res.status(400).json({ error: "No file provided" });
+      return res.status(400).send(); // No body for bad request
     }
 
     const userId = uuidv4();
@@ -21,13 +33,13 @@ router.post("/", upload.single("profilePic"), async (req, res) => {
     const uniqueFileName = `${uuidv4()}${fileExtension}`;
     const s3Key = `${userId}/${uniqueFileName}`;
 
-    const uploadParams = {
+    // Upload to S3
+    await s3.upload({
       Bucket: process.env.S3_BUCKET,
       Key: s3Key,
       Body: req.file.buffer,
       ContentType: req.file.mimetype,
-    };
-    await s3.upload(uploadParams).promise();
+    }).promise();
 
     // Store metadata in DB
     const fileRecord = await File.create({
@@ -45,20 +57,17 @@ router.post("/", upload.single("profilePic"), async (req, res) => {
     });
   } catch (error) {
     console.error("Error uploading file:", error);
-    return res.status(500).json({ error: "Error uploading file" });
+    return res.status(500).send();
   }
 });
-
 
 // GET /v1/file/:id
 router.get("/:id", async (req, res) => {
   try {
     const fileRecord = await File.findOne({ where: { user_id: req.params.id } });
-
     if (!fileRecord) {
-      return res.status(404).json({ error: "File not found" });
+      return res.status(404).send();
     }
-
     return res.status(200).json({
       file_name: fileRecord.file_name,
       id: fileRecord.user_id,
@@ -67,39 +76,43 @@ router.get("/:id", async (req, res) => {
     });
   } catch (error) {
     console.error("Error retrieving file:", error);
-    return res.status(500).json({ error: "Error retrieving file" });
+    return res.status(500).send();
   }
 });
 
-//  DELETE /v1/file/:id
+// DELETE /v1/file
+router.delete("/", (req, res) => {
+  return res.status(400).send();
+});
+
+// DELETE /v1/file/:id
 router.delete("/:id", async (req, res) => {
   try {
     const fileRecord = await File.findOne({ where: { user_id: req.params.id } });
-
     if (!fileRecord) {
-      return res.status(404).json({ error: "File not found" });
+      return res.status(404).send();
     }
 
     // Delete from S3
-    await s3
-      .deleteObject({
-        Bucket: process.env.S3_BUCKET,
-        Key: fileRecord.url.replace(`${process.env.S3_BUCKET}/`, ""),
-      })
-      .promise();
+    await s3.deleteObject({
+      Bucket: process.env.S3_BUCKET,
+      Key: fileRecord.url.replace(`${process.env.S3_BUCKET}/`, ""),
+    }).promise();
 
     // Remove from DB
     await fileRecord.destroy();
-
     return res.status(204).send();
   } catch (error) {
     console.error("Error deleting file:", error);
-    return res.status(500).json({ error: "Error deleting file" });
+    return res.status(500).send();
   }
 });
 
-// Handle unsupported methods
-router.all("/", (req, res) => res.status(405).json({ error: "Method Not Allowed" }));
-router.all("/:id", (req, res) => res.status(405).json({ error: "Method Not Allowed" }));
+// Explicitly disallow POST on /v1/file/:id
+router.post("/:id", (req, res) => res.status(405).send());
+
+// Handle other unsupported methods on / and /:id
+router.all("/", (req, res) => res.status(405).send());
+router.all("/:id", (req, res) => res.status(405).send());
 
 module.exports = router;
