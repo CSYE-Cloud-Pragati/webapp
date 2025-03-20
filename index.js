@@ -2,6 +2,7 @@ const express = require('express');
 const sequelize = require('./src/config/database');
 const HealthCheck = require('./src/models/healthCheck');
 const fileRoutes = require("./src/routes/file"); // Import file upload API
+const AWS = require("aws-sdk")
 
 const app = express();
 const port = 8080;
@@ -23,6 +24,13 @@ app.use((req, res, next) => {
         next();
     });
 });
+
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID, // AWS Access Key from .env
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, // AWS Secret Key from .env
+    region: process.env.AWS_REGION, // AWS Region from .env
+});
+
 
 app.head('/healthz', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
