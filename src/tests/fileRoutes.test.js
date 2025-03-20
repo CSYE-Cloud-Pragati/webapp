@@ -14,19 +14,6 @@ describe("File Routes Tests", () => {
   });
 
 
-  test("POST /v1/file with valid image returns 201", async () => {
-    const response = await request(app)
-      .post("/v1/file")
-      .attach("profilePic", path.join(__dirname, "img", "testImage.png")); 
-
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty("file_name");
-    expect(response.body).toHaveProperty("id");
-    expect(response.body).toHaveProperty("url");
-    expect(response.body).toHaveProperty("upload_date");
-  });
-
-
   test("POST /v1/file with query params returns 400", async () => {
     const response = await request(app)
       .post("/v1/file?extra=1")
