@@ -72,7 +72,7 @@ router.post(
       }
 
       // Generate IDs and file paths
-      const userId = uuidv4();
+      const id = uuidv4();
       const fileExtension = path.extname(req.file.originalname);
       const uniqueFileName = `${uuidv4()}${fileExtension}`;
       const s3Key = `${userId}/${uniqueFileName}`;
@@ -89,7 +89,7 @@ router.post(
 
 
       const fileRecord = await File.create({
-        user_id: userId,
+        id: id,
         file_name: req.file.originalname,
         url: `${process.env.S3_BUCKET}/${s3Key}`,
         upload_date: new Date().toISOString().split("T")[0],
@@ -131,7 +131,7 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const fileRecord = await File.findOne({ where: { user_id: req.params.id } });
+    const fileRecord = await File.findOne({ where: { id: req.params.id } });
 
     if (!fileRecord) {
       return res.status(404).send(); 
@@ -139,7 +139,7 @@ router.get("/:id", async (req, res) => {
 
     return res.status(200).json({
       file_name: fileRecord.file_name,
-      id: fileRecord.user_id,
+      id: fileRecord.id,
       url: fileRecord.url,
       upload_date: fileRecord.upload_date,
     });
@@ -159,7 +159,7 @@ router.delete("/", (req, res) => {
 // - Return 204 on success, 404 if not found, 500 on error
 router.delete("/:id", async (req, res) => {
   try {
-    const fileRecord = await File.findOne({ where: { user_id: req.params.id } });
+    const fileRecord = await File.findOne({ where: { id: req.params.id } });
     if (!fileRecord) {
       return res.status(404).send();
     }
