@@ -2,7 +2,7 @@ const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
 const File = sequelize.define("File", {
-  user_id: {
+  id: {
     type: DataTypes.UUID,
     allowNull: false,
     primaryKey: true,
