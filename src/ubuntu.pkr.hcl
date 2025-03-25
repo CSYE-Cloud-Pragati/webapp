@@ -4,12 +4,6 @@ packer {
       version = ">= 1.2.8"
       source  = "github.com/hashicorp/amazon"
     }
-
-    # GCP
-    googlecompute = {
-      version = ">= 1.0.0"
-      source  = "github.com/hashicorp/googlecompute"
-    }
   }
 }
 
@@ -62,36 +56,6 @@ variable "aws_secret_key" {
   type = string
 }
 
-
-# GCP Variables
-variable "project_id" {
-  type    = string
-  default = "webapp-452122"
-}
-
-
-variable "gcp_zone" {
-  type    = string
-  default = "us-central1-a"
-}
-
-# GCP Builder Configuration
-source "googlecompute" "gcp-image" {
-  project_id          = var.project_id
-  source_image_family = "ubuntu-2204-lts"
-  image_name          = "webapp-${formatdate("YYYYMMDDHHmmss", timestamp())}"
-  machine_type        = "e2-medium"
-  zone                = var.gcp_zone
-  ssh_username        = "ubuntu"
-  image_family        = "webapp"
-  metadata = {
-    enable-oslogin = "FALSE"
-  }
-}
-
-
-
-
 # Amazon AMI Builder
 source "amazon-ebs" "ubuntu" {
   region          = var.aws_region
@@ -128,7 +92,6 @@ source "amazon-ebs" "ubuntu" {
 build {
   sources = [
     "source.amazon-ebs.ubuntu",
-    "source.googlecompute.gcp-image"
   ]
 
   provisioner "file" {
@@ -185,16 +148,6 @@ build {
 
       "node -v",
       "npm -v",
-
-      # Install PostgreSQL
-      # "sudo apt-get install -y postgresql postgresql-contrib unzip",
-      # "sudo systemctl enable postgresql",
-      # "sudo systemctl start postgresql",
-
-      # Create PostgreSQL database and user with privileges
-      # "sudo -u postgres psql -c \"CREATE DATABASE ${var.db_name};\"",
-      # "sudo -u postgres psql -c \"ALTER USER ${var.db_user} WITH ENCRYPTED PASSWORD '${var.db_password}';\"",
-      # "sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE ${var.db_name} TO ${var.db_user};\"",
 
       "echo 'Move application started'",
       "sudo mv /tmp/application.service /etc/systemd/system",
