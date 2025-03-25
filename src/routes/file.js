@@ -75,7 +75,7 @@ router.post(
       const id = uuidv4();
       const fileExtension = path.extname(req.file.originalname);
       const uniqueFileName = `${uuidv4()}${fileExtension}`;
-      const s3Key = `${userId}/${uniqueFileName}`;
+      const s3Key = `${id}/${uniqueFileName}`;
 
       // Upload to S3
       await s3
@@ -98,13 +98,13 @@ router.post(
 
       return res.status(201).json({
         file_name: fileRecord.file_name,
-        id: userId,
+        id: id,
         url: fileRecord.url,
         upload_date: fileRecord.upload_date,
       });
     } catch (error) {
       console.error("Error uploading file:", error);
-      return res.status(400).send(); 
+      return res.status(503).send(); 
     }
   }
 );

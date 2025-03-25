@@ -164,6 +164,14 @@ build {
       "sudo apt-get upgrade -y",
       "sudo apt-get install -y unzip",
 
+      // *** Begin CloudWatch Agent Installation ***
+      "echo 'Installing Amazon CloudWatch Agent...'",
+      "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb -O /tmp/amazon-cloudwatch-agent.deb",
+      "sudo dpkg -i /tmp/amazon-cloudwatch-agent.deb",
+      "sudo systemctl enable amazon-cloudwatch-agent",
+      "sudo systemctl start amazon-cloudwatch-agent",
+      // *** End CloudWatch Agent Installation ***
+
       "echo 'Creating user and group csye6225'",
       "sudo groupadd csye6225 || echo 'Group already exists'",
       "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225",
