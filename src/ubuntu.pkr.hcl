@@ -174,13 +174,14 @@ build {
 
       "echo 'Finished unzip operation'",
 
+      # Run npm install as csye6225
+      "echo 'Running npm install as csye6225'",
+      "sudo npm install",
+
       "echo 'Setting ownership of files after unzipping'",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 755 /opt/csye6225",
 
-      # Run npm install as csye6225
-      "echo 'Running npm install as csye6225'",
-      "sudo npm install",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable application",
       "sudo systemctl start application",

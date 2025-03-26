@@ -6,20 +6,24 @@ const HealthCheck = require('./src/models/healthCheck');
 const fileRoutes = require("./src/routes/file");
 const AWS = require("aws-sdk");
 
+// Import the Winston logger
+const logger = require('./src/config/logger');
+
 const app = express();
 const port = process.env.PORT || 8080;
 
 // Only synchronize database if not in test mode
 if (process.env.NODE_ENV !== 'test') {
   sequelize.sync({ force: true })
-    .then(() => console.log('Database synchronized!'))
-    .catch((error) => console.error('Error synchronizing database:', error));
+    .then(() => logger.info('Database synchronized!'))
+    .catch((error) => logger.error('Error synchronizing database:', error));
 }
 
 // Middleware to catch JSON parsing errors
 app.use((req, res, next) => {
   express.json()(req, res, (err) => {
     if (err) {
+      logger.warn("Invalid JSON body, returning 400");
       return res.status(400).send();
     }
     next();
@@ -34,15 +38,17 @@ AWS.config.update({
 });
 
 app.head('/healthz', (req, res) => {
-    // If you want consistent headers, set them here:
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    return res.status(405).send(); // Empty body
-  });
+  logger.info("HEAD /healthz: 405 Method Not Allowed");
+  // If you want consistent headers, set them here:
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  return res.status(405).send(); // Empty body
+});
 
 // GET /healthz
 app.get('/healthz', async (req, res) => {
+  logger.info("GET /healthz: Checking request for query/body/auth");
   // Set required headers
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -56,20 +62,25 @@ app.get('/healthz', async (req, res) => {
     req.get("authentication") ||
     req.get("authorization")
   ) {
+    logger.warn("GET /healthz: Rejected - extra request data present");
     return res.status(400).send();
   }
 
   try {
+    logger.info("GET /healthz: Attempting a simple DB operation");
     // Attempt a simple DB operation
     await HealthCheck.create({});
+    logger.info("GET /healthz: DB operation succeeded, returning 200");
     return res.status(200).send();
   } catch (error) {
+    logger.error("GET /healthz: DB operation failed, returning 503", error);
     return res.status(503).send();
   }
 });
 
 // For any method on /healthz that is not GET, return 405
 app.all('/healthz', (req, res) => {
+  logger.info(`ALL /healthz: 405 Method Not Allowed (method: ${req.method})`);
   // Set the same headers for consistency
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -82,12 +93,13 @@ app.use("/v1/file", fileRoutes);
 
 // Catch-all for any undefined endpoints
 app.get('*', (req, res) => {
+  logger.warn(`GET ${req.originalUrl}: 404 Not Found`);
   res.status(404).send();
 });
 
 if (require.main === module) {
   app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    logger.info(`Server running at http://localhost:${port}`);
   });
 }
 
