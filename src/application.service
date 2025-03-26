@@ -3,6 +3,7 @@ Description=Node JS Application Service
 After=network.target
 
 [Service]
+Group=csye6225
 User=csye6225
 WorkingDirectory=/opt/csye6225
 ExecStart=/usr/bin/npm run start
