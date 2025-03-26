@@ -181,7 +181,7 @@ build {
       "echo 'Setting ownership of files after unzipping'",
       "sudo chown -R csye6225:csye6225 /opt/csye6225",
       "sudo chmod -R 755 /opt/csye6225",
-      
+
       "sudo systemctl daemon-reload",
       "sudo systemctl enable application",
       "sudo systemctl start application",
