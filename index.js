@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 
 const express = require('express');
 const sequelize = require('./src/config/database');
@@ -6,8 +6,9 @@ const HealthCheck = require('./src/models/healthCheck');
 const fileRoutes = require("./src/routes/file");
 const AWS = require("aws-sdk");
 
-// Import the Winston logger
+// Import the Winston logger and StatsD metrics client
 const logger = require('./src/config/logger');
+const metrics = require('./src/config/metrics');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -39,7 +40,7 @@ AWS.config.update({
 
 app.head('/healthz', (req, res) => {
   logger.info("HEAD /healthz: 405 Method Not Allowed");
-  // If you want consistent headers, set them here:
+  // Set consistent headers
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -48,6 +49,7 @@ app.head('/healthz', (req, res) => {
 
 // GET /healthz
 app.get('/healthz', async (req, res) => {
+  const startTime = Date.now();
   logger.info("GET /healthz: Checking request for query/body/auth");
   // Set required headers
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -70,10 +72,14 @@ app.get('/healthz', async (req, res) => {
     logger.info("GET /healthz: Attempting a simple DB operation");
     // Attempt a simple DB operation
     await HealthCheck.create({});
+    const duration = Date.now() - startTime;
+    metrics.increment('api.healthz.count');
+    metrics.timing('api.healthz.duration', duration);
     logger.info("GET /healthz: DB operation succeeded, returning 200");
     return res.status(200).send();
   } catch (error) {
     logger.error("GET /healthz: DB operation failed, returning 503", error);
+    metrics.increment('api.healthz.error');
     return res.status(503).send();
   }
 });

@@ -131,6 +131,7 @@ build {
       "echo 'Installing Amazon CloudWatch Agent...'",
       "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb -O /tmp/amazon-cloudwatch-agent.deb",
       "sudo dpkg -i /tmp/amazon-cloudwatch-agent.deb",
+      "sudo cp /tmp/amazon-cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
       "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo systemctl start amazon-cloudwatch-agent",
       // *** End CloudWatch Agent Installation ***

@@ -1,0 +1,33 @@
+{
+    "agent": {
+      "metrics_collection_interval": 60,
+      "run_as_user": "root"
+    },
+    "metrics": {
+      "metrics_collected": {
+        "cpu": {
+          "measurement": ["usage_idle", "usage_user", "usage_system"],
+          "totalcpu": true
+        },
+        "statsd": {
+          "service_address": ":8125",
+          "metrics_aggregation_interval": 60,
+          "metrics_aggregation_time": 60
+        }
+      }
+    },
+    "logs": {
+      "logs_collected": {
+        "files": {
+          "collect_list": [
+            {
+              "file_path": "/var/log/myapp.log",
+              "log_group_name": "/aws/amazon-cloudwatch-agent/myapp",
+              "log_stream_name": "{instance_id}"
+            }
+          ]
+        }
+      }
+    }
+  }
+  
