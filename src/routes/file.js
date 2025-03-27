@@ -78,9 +78,10 @@ router.post(
     });
   },
   async (req, res) => {
-    // Start timing this API call (NEW for metrics)
-    const startTime = Date.now();
+    // Start timing this API call (NEW for overall API duration)
+    const apiStartTime = Date.now();
     logger.info("POST /v1/file: Attempting to upload file to S3");
+
     try {
       if (!process.env.S3_BUCKET) {
         logger.error("POST /v1/file: S3_BUCKET not set in environment");
@@ -93,7 +94,8 @@ router.post(
       const uniqueFileName = `${uuidv4()}${fileExtension}`;
       const s3Key = `${id}/${uniqueFileName}`;
 
-      // Upload to S3
+      // Time the S3 upload operation (NEW for S3 metrics)
+      const s3StartTime = Date.now();
       await s3
         .upload({
           Bucket: process.env.S3_BUCKET,
@@ -102,22 +104,29 @@ router.post(
           ContentType: req.file.mimetype,
         })
         .promise();
+      const s3Duration = Date.now() - s3StartTime;
+      metrics.timing('api.file.s3_upload_duration', s3Duration);
+      logger.info(`POST /v1/file: S3 upload completed in ${s3Duration} ms`);
 
-      logger.info(`POST /v1/file: Successfully uploaded to S3 with Key ${s3Key}`);
-
+      // Time the DB creation operation (NEW for DB metrics)
+      const dbStartTime = Date.now();
       const fileRecord = await File.create({
         id: id,
         file_name: req.file.originalname,
         url: `${process.env.S3_BUCKET}/${s3Key}`,
         upload_date: new Date().toISOString().split("T")[0],
       });
+      const dbDuration = Date.now() - dbStartTime;
+      metrics.timing('api.file.db_create_duration', dbDuration);
+      logger.info(`POST /v1/file: DB record creation completed in ${dbDuration} ms`);
 
       logger.info(`POST /v1/file: Created file record in DB with ID ${id}`);
       
-      // Record custom metrics for a successful upload (NEW for metrics)
+      // Record custom metrics for overall API call duration (NEW for metrics)
       metrics.increment('api.file.upload.count');
-      const duration = Date.now() - startTime;
-      metrics.timing('api.file.upload.duration', duration);
+      const apiDuration = Date.now() - apiStartTime;
+      metrics.timing('api.file.upload.duration', apiDuration);
+      logger.info(`POST /v1/file: Total API call duration ${apiDuration} ms`);
 
       return res.status(201).json({
         file_name: fileRecord.file_name,
@@ -148,7 +157,7 @@ router.head("/:id", (req, res) => {
 // - Return 200 + JSON if found, 404 if not found, 500 on error
 router.get("/:id", async (req, res) => {
   // Start timing the GET API call (NEW for metrics)
-  const startTime = Date.now();
+  const apiStartTime = Date.now();
   logger.info(`GET /v1/file/${req.params.id}: Checking query/body/auth headers`);
   if (
     Object.keys(req.query).length > 0 ||
@@ -161,8 +170,13 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
+    // Time the DB query operation (NEW for DB metrics)
+    const dbStartTime = Date.now();
     logger.info(`GET /v1/file/${req.params.id}: Searching for file record`);
     const fileRecord = await File.findOne({ where: { id: req.params.id } });
+    const dbDuration = Date.now() - dbStartTime;
+    metrics.timing('api.file.db_query_duration', dbDuration);
+    logger.info(`GET /v1/file/${req.params.id}: DB query duration ${dbDuration} ms`);
 
     if (!fileRecord) {
       logger.warn(`GET /v1/file/${req.params.id}: File not found`);
@@ -170,8 +184,10 @@ router.get("/:id", async (req, res) => {
     }
 
     logger.info(`GET /v1/file/${req.params.id}: File found, returning 200`);
-    const duration = Date.now() - startTime;
-    metrics.timing('api.file.get.duration', duration); // Record GET duration metric
+    const apiDuration = Date.now() - apiStartTime;
+    metrics.timing('api.file.get.duration', apiDuration); // Record GET API call duration
+    logger.info(`GET /v1/file/${req.params.id}: Total API call duration ${apiDuration} ms`);
+
     return res.status(200).json({
       file_name: fileRecord.file_name,
       id: fileRecord.id,
@@ -195,13 +211,19 @@ router.delete("/", (req, res) => {
 router.delete("/:id", async (req, res) => {
   logger.info(`DELETE /v1/file/${req.params.id}: Attempting to delete file`);
   try {
+    const dbStartTime = Date.now();
     const fileRecord = await File.findOne({ where: { id: req.params.id } });
+    const dbQueryDuration = Date.now() - dbStartTime;
+    metrics.timing('api.file.db_query_duration', dbQueryDuration);
+    logger.info(`DELETE /v1/file/${req.params.id}: DB query duration ${dbQueryDuration} ms`);
+
     if (!fileRecord) {
       logger.warn(`DELETE /v1/file/${req.params.id}: File not found`);
       return res.status(404).send();
     }
 
-    // Delete from S3
+    // Time the S3 deletion operation (NEW for S3 metrics)
+    const s3StartTime = Date.now();
     const s3Key = fileRecord.url.replace(`${process.env.S3_BUCKET}/`, "");
     logger.info(`DELETE /v1/file/${req.params.id}: Deleting from S3 with Key ${s3Key}`);
     await s3
@@ -210,10 +232,18 @@ router.delete("/:id", async (req, res) => {
         Key: s3Key,
       })
       .promise();
+    const s3DeletionDuration = Date.now() - s3StartTime;
+    metrics.timing('api.file.s3_deletion_duration', s3DeletionDuration);
+    logger.info(`DELETE /v1/file/${req.params.id}: S3 deletion duration ${s3DeletionDuration} ms`);
 
-    // Remove from DB
+    // Time the DB deletion operation (NEW for DB metrics)
+    const dbDeletionStart = Date.now();
     logger.info(`DELETE /v1/file/${req.params.id}: Removing record from DB`);
     await fileRecord.destroy();
+    const dbDeletionDuration = Date.now() - dbDeletionStart;
+    metrics.timing('api.file.db_deletion_duration', dbDeletionDuration);
+    logger.info(`DELETE /v1/file/${req.params.id}: DB deletion duration ${dbDeletionDuration} ms`);
+
     logger.info(`DELETE /v1/file/${req.params.id}: Successfully deleted file record`);
     return res.status(204).send();
   } catch (error) {

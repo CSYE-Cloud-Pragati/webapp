@@ -15,6 +15,12 @@ const metrics = require('./src/config/metrics');
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Middleware to log every incoming request (NEW enhanced logging)
+app.use((req, res, next) => {
+  logger.info(`Incoming Request: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Only synchronize database if not in test mode
 if (process.env.NODE_ENV !== 'test') {
   sequelize.sync({ force: true })
@@ -51,6 +57,7 @@ app.head('/healthz', (req, res) => {
 
 // GET /healthz
 app.get('/healthz', async (req, res) => {
+  // Start timing the health check API (NEW for metrics)
   const startTime = Date.now();
   logger.info("GET /healthz: Checking request for query/body/auth");
   // Set required headers
@@ -72,13 +79,18 @@ app.get('/healthz', async (req, res) => {
 
   try {
     logger.info("GET /healthz: Attempting a simple DB operation");
-    // Attempt a simple DB operation
+    // Time the DB operation for health check (NEW for metrics)
+    const dbStartTime = Date.now();
     await HealthCheck.create({});
+    const dbDuration = Date.now() - dbStartTime;
+    metrics.timing('api.healthz.db_duration', dbDuration);
+    logger.info(`GET /healthz: DB operation duration ${dbDuration} ms`);
+
     const duration = Date.now() - startTime;
     // Record custom metrics for health check (NEW for metrics)
     metrics.increment('api.healthz.count');
     metrics.timing('api.healthz.duration', duration);
-    logger.info("GET /healthz: DB operation succeeded, returning 200");
+    logger.info(`GET /healthz: Total API call duration ${duration} ms`);
     return res.status(200).send();
   } catch (error) {
     logger.error("GET /healthz: DB operation failed, returning 503", error);
