@@ -1,10 +1,10 @@
 const { createLogger, format, transports } = require('winston');
 
 // Use a different log file path for local development vs. production.
-// For production, we now write logs to /var/log/tomcat9/csye6225/logs/webapp.log.
+// For production, we now write logs to /opt/csye6225/logs/webapp.log.
 const logFilePath = process.env.NODE_ENV === 'test'
   ? './logs/myapp.log'  // Relative path for local testing
-  : '/var/log/tomcat9/csye6225/logs/webapp.log'; // Production path
+  : '/opt/csye6225/logs/webapp.log'; // Production path
 
 const logger = createLogger({
   level: 'info',
