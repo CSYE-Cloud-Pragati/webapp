@@ -8,6 +8,8 @@ const AWS = require("aws-sdk");
 
 // Import the Winston logger and StatsD metrics client
 const logger = require('./src/config/logger');
+logger.info("Application has started");
+
 const metrics = require('./src/config/metrics');
 
 const app = express();
