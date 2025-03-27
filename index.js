@@ -6,66 +6,68 @@ const HealthCheck = require('./src/models/healthCheck');
 const fileRoutes = require("./src/routes/file");
 const AWS = require("aws-sdk");
 
-// Import the Winston logger and StatsD metrics client (NEW for metrics)
 const logger = require('./src/config/logger');
-logger.info("Application has started");
-
 const metrics = require('./src/config/metrics');
+
+logger.info("Application initialization started");
 
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Middleware to log every incoming request (NEW enhanced logging)
+// Global Request Logger
 app.use((req, res, next) => {
-  logger.info(`Incoming Request: ${req.method} ${req.originalUrl}`);
+  logger.info(`Incoming request: [${req.method}] ${req.originalUrl}`);
+  metrics.increment(`requests.total`);
   next();
 });
 
-// Only synchronize database if not in test mode
+// DB Sync
 if (process.env.NODE_ENV !== 'test') {
   sequelize.sync({ force: true })
-    .then(() => logger.info('Database synchronized!'))
-    .catch((error) => logger.error('Error synchronizing database:', error));
+    .then(() => logger.info('Database synchronized successfully'))
+    .catch((error) => {
+      logger.error('Error during database synchronization', error);
+      metrics.increment('errors.db_sync');
+    });
 }
 
-// Middleware to catch JSON parsing errors
+// JSON parser with error handling
 app.use((req, res, next) => {
   express.json()(req, res, (err) => {
     if (err) {
-      logger.warn("Invalid JSON body, returning 400");
+      logger.warn("⚠️ Malformed JSON body received, sending 400");
+      metrics.increment('errors.invalid_json');
       return res.status(400).send();
     }
     next();
   });
 });
 
-// Configure AWS SDK
+// AWS SDK Config
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
 });
 
+// HEAD /healthz
 app.head('/healthz', (req, res) => {
-  logger.info("HEAD /healthz: 405 Method Not Allowed");
-  // Set consistent headers
+  logger.info("HEAD /healthz is not allowed - 405 returned");
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  return res.status(405).send(); // Empty body
+  return res.status(405).send();
 });
 
 // GET /healthz
 app.get('/healthz', async (req, res) => {
-  // Start timing the health check API (NEW for metrics)
   const startTime = Date.now();
-  logger.info("GET /healthz: Checking request for query/body/auth");
-  // Set required headers
+  logger.info("Performing health check...");
+
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
-  // If any request parameters, body, or auth headers are provided, return 400.
   if (
     Object.keys(req.body).length > 0 ||
     Object.keys(req.query).length > 0 ||
@@ -73,54 +75,55 @@ app.get('/healthz', async (req, res) => {
     req.get("authentication") ||
     req.get("authorization")
   ) {
-    logger.warn("GET /healthz: Rejected - extra request data present");
+    logger.warn("Health check failed: unexpected headers or body present");
+    metrics.increment('errors.healthz.invalid_request');
     return res.status(400).send();
   }
 
   try {
-    logger.info("GET /healthz: Attempting a simple DB operation");
-    // Time the DB operation for health check (NEW for metrics)
     const dbStartTime = Date.now();
     await HealthCheck.create({});
     const dbDuration = Date.now() - dbStartTime;
-    metrics.timing('api.healthz.db_duration', dbDuration);
-    logger.info(`GET /healthz: DB operation duration ${dbDuration} ms`);
+    metrics.timing('api.healthz.db_write_duration', dbDuration);
+    logger.info(`DB check completed in ${dbDuration} ms`);
 
-    const duration = Date.now() - startTime;
-    // Record custom metrics for health check (NEW for metrics)
-    metrics.increment('api.healthz.count');
-    metrics.timing('api.healthz.duration', duration);
-    logger.info(`GET /healthz: Total API call duration ${duration} ms`);
+    const apiDuration = Date.now() - startTime;
+    metrics.increment('api.healthz.success');
+    metrics.timing('api.healthz.total_duration', apiDuration);
+    logger.info(`Health check successful in ${apiDuration} ms`);
+
     return res.status(200).send();
   } catch (error) {
-    logger.error("GET /healthz: DB operation failed, returning 503", error);
+    logger.error("Health check DB operation failed", error);
     metrics.increment('api.healthz.error');
     return res.status(503).send();
   }
 });
 
-// For any method on /healthz that is not GET, return 405
+// ALL /healthz - not allowed methods
 app.all('/healthz', (req, res) => {
-  logger.info(`ALL /healthz: 405 Method Not Allowed (method: ${req.method})`);
-  // Set the same headers for consistency
+  logger.info(`Method [${req.method}] not allowed on /healthz - returning 405`);
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   return res.status(405).send();
 });
 
-// Use file routes for /v1/file endpoints
+// Mount /v1/file routes
 app.use("/v1/file", fileRoutes);
 
-// Catch-all for any undefined endpoints
+// Catch-all for unknown routes
 app.get('*', (req, res) => {
-  logger.warn(`GET ${req.originalUrl}: 404 Not Found`);
+  logger.warn(`Unhandled GET route accessed: ${req.originalUrl} - returning 404`);
+  metrics.increment('errors.404');
   res.status(404).send();
 });
 
+// Start Server
 if (require.main === module) {
   app.listen(port, () => {
-    logger.info(`Server running at http://localhost:${port}`);
+    logger.info(`Server listening on http://localhost:${port}`);
+    metrics.increment('server.started');
   });
 }
 
