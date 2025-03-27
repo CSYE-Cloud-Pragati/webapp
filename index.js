@@ -6,7 +6,7 @@ const HealthCheck = require('./src/models/healthCheck');
 const fileRoutes = require("./src/routes/file");
 const AWS = require("aws-sdk");
 
-// Import the Winston logger and StatsD metrics client
+// Import the Winston logger and StatsD metrics client (NEW for metrics)
 const logger = require('./src/config/logger');
 logger.info("Application has started");
 
@@ -75,6 +75,7 @@ app.get('/healthz', async (req, res) => {
     // Attempt a simple DB operation
     await HealthCheck.create({});
     const duration = Date.now() - startTime;
+    // Record custom metrics for health check (NEW for metrics)
     metrics.increment('api.healthz.count');
     metrics.timing('api.healthz.duration', duration);
     logger.info("GET /healthz: DB operation succeeded, returning 200");

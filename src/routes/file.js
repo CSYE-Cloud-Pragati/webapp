@@ -8,7 +8,7 @@ const File = require("../models/file");
 
 // Import the Winston logger
 const logger = require("../config/logger");
-// Import the StatsD metrics client
+// Import the StatsD metrics client (NEW for metrics)
 const metrics = require("../config/metrics");
 
 // Configure multer for in-memory storage, limit file size to 5MB, only allow images
@@ -78,7 +78,7 @@ router.post(
     });
   },
   async (req, res) => {
-    // Start timing this API call
+    // Start timing this API call (NEW for metrics)
     const startTime = Date.now();
     logger.info("POST /v1/file: Attempting to upload file to S3");
     try {
@@ -114,7 +114,7 @@ router.post(
 
       logger.info(`POST /v1/file: Created file record in DB with ID ${id}`);
       
-      // Record custom metrics for a successful upload
+      // Record custom metrics for a successful upload (NEW for metrics)
       metrics.increment('api.file.upload.count');
       const duration = Date.now() - startTime;
       metrics.timing('api.file.upload.duration', duration);
@@ -126,7 +126,7 @@ router.post(
         upload_date: fileRecord.upload_date,
       });
     } catch (error) {
-      // Record error metric
+      // Record error metric (NEW for metrics)
       metrics.increment('api.file.upload.error');
       logger.error("POST /v1/file: Error uploading file:", error);
       return res.status(503).send();
@@ -147,6 +147,7 @@ router.head("/:id", (req, res) => {
 // GET /v1/file/:id
 // - Return 200 + JSON if found, 404 if not found, 500 on error
 router.get("/:id", async (req, res) => {
+  // Start timing the GET API call (NEW for metrics)
   const startTime = Date.now();
   logger.info(`GET /v1/file/${req.params.id}: Checking query/body/auth headers`);
   if (
@@ -170,7 +171,7 @@ router.get("/:id", async (req, res) => {
 
     logger.info(`GET /v1/file/${req.params.id}: File found, returning 200`);
     const duration = Date.now() - startTime;
-    metrics.timing('api.file.get.duration', duration);
+    metrics.timing('api.file.get.duration', duration); // Record GET duration metric
     return res.status(200).json({
       file_name: fileRecord.file_name,
       id: fileRecord.id,
