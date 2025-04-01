@@ -98,10 +98,17 @@ build {
     source      = "webapp.zip" # Copy the entire webapp codebase
     destination = "/tmp/webapp.zip"
   }
+
   provisioner "file" {
     source      = "application.service" # Copy the entire webapp codebase
     destination = "/tmp/application.service"
   }
+
+  provisioner "file" {
+    source      = "amazon-cloudwatch-agent.json"
+    destination = "/tmp/amazon-cloudwatch-agent.json"
+  }
+
 
   provisioner "shell" {
     inline = [
@@ -122,24 +129,33 @@ build {
       "sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list",
       "sudo rm -f /etc/apt/apt.conf.d/50command-not-found",
 
-
       "sudo apt-get update -y",
       "sudo apt-get upgrade -y",
       "sudo apt-get install -y unzip",
 
-      // *** Begin CloudWatch Agent Installation ***
+      # ==== CloudWatch Agent Start ====
       "echo 'Installing Amazon CloudWatch Agent...'",
       "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb -O /tmp/amazon-cloudwatch-agent.deb",
       "sudo dpkg -i /tmp/amazon-cloudwatch-agent.deb",
+
+      "sudo mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/",
+      "sudo mkdir -p /opt/csye6225/logs/",
+
+      "sudo mv /tmp/amazon-cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+
+      "sudo chown root:root /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+      "sudo chmod 644 /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+
       "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo systemctl start amazon-cloudwatch-agent",
-      // *** End CloudWatch Agent Installation ***
+
+      "echo 'CloudWatch agent setup completed.'",
+      # ==== CloudWatch Agent End ====
 
       "echo 'Creating user and group csye6225'",
       "sudo groupadd csye6225 || echo 'Group already exists'",
       "sudo useradd -s /bin/false -g csye6225 -d /opt/csye6225 -m csye6225",
 
-      # Install Node.js .x
       "echo 'Installing Node.js v20...'",
       "sudo apt-get install -y curl",
       "curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -",
@@ -154,7 +170,6 @@ build {
       "sudo chmod 644 /etc/systemd/system/application.service",
       "echo 'Move application completed'",
 
-      # Create /opt/csye6225 directory and set permissions
       "echo 'Creating /opt/csye6225 directory'",
       "sudo mkdir -p /opt/csye6225",
       "sudo chown csye6225:csye6225 /opt/csye6225",
@@ -174,7 +189,6 @@ build {
 
       "echo 'Finished unzip operation'",
 
-      # Run npm install as csye6225
       "echo 'Running npm install as csye6225'",
       "sudo npm install",
 
@@ -186,11 +200,10 @@ build {
       "sudo systemctl enable application",
       "sudo systemctl start application",
 
-
-      "echo 'Script execution completed successfully!'",
-
+      "echo 'Script execution completed successfully!'"
     ]
   }
-
-
 }
+
+
+
