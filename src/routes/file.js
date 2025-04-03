@@ -62,7 +62,7 @@ router.post(
       }
 
       if (!req.file) {
-        logger.warn("⚠️ [POST /v1/file] No file provided in request");
+        logger.warn("[POST /v1/file] No file provided in request");
         metrics.increment("api.file.upload.no_file");
         return res.status(400).send();
       }
@@ -81,7 +81,7 @@ router.post(
         return res.status(400).send();
       }
 
-      const id = uuidv4();
+      const id = uuidv4(); 
       const fileExtension = path.extname(req.file.originalname);
       const uniqueFileName = `${uuidv4()}${fileExtension}`;
       const s3Key = `${id}/${uniqueFileName}`;
@@ -200,7 +200,7 @@ router.delete("/:id", async (req, res) => {
     metrics.timing("api.file.db_query_duration", dbQueryDuration);
 
     if (!fileRecord) {
-      logger.warn("⚠️ [DELETE /v1/file] File not found");
+      logger.warn("[DELETE /v1/file] File not found");
       metrics.increment("api.file.delete.not_found");
       return res.status(404).send();
     }
