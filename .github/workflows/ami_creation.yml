@@ -142,9 +142,9 @@ jobs:
       - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
         run: |
           aws autoscaling update-auto-scaling-group \
-            --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
-            --launch-template "LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version='$Latest'" \
-            --region ${{ secrets.AWS_REGION }}
+          --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+          --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version=\$Latest \
+          --region ${{ secrets.AWS_REGION }}
 
       - name: ISSUE INSTANCE REFRESH ON ASG
         run: |
