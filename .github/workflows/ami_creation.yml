@@ -89,18 +89,29 @@ jobs:
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
-          # EXTRACT THE AMI ID USING AWS CLI (ensure the AMI name matches the filter pattern)
+          # # EXTRACT THE AMI ID USING AWS CLI (ensure the AMI name matches the filter pattern)
+          # AMI_ID=$(aws ec2 describe-images \
+          #   --owners self \
+          #   --filters "Name=name,Values=ami-*" \
+          #   --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+          #   --output text \
+          #   --region "${AWS_REGION}")
+          # if [ -z "$AMI_ID" ]; then
+          #   echo "ERROR: AMI_ID is empty. Please verify that the AMI was built correctly."
+          #   exit 1
+          # fi
+          # echo "AMI_ID: $AMI_ID"
+          # echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
+
+      - name: Get Latest AMI ID
+        id: ami_id
+        run: |
           AMI_ID=$(aws ec2 describe-images \
-            --owners self \
-            --filters "Name=name,Values=ami-*" \
-            --query "sort_by(Images, &CreationDate)[-1].ImageId" \
-            --output text \
-            --region "${AWS_REGION}")
-          if [ -z "$AMI_ID" ]; then
-            echo "ERROR: AMI_ID is empty. Please verify that the AMI was built correctly."
-            exit 1
-          fi
-          echo "AMI_ID: $AMI_ID"
+            --executable-users self \
+            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+            --output text)
+          echo "Latest AMI ID retrieved: ${AMI_ID}"
+          echo "AMI_ID=${AMI_ID}" >> $GITHUB_ENV
           echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
       - name: Share AMI with DEMO account
