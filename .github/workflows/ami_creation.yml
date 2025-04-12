@@ -104,14 +104,15 @@ jobs:
           --owners self \
           --query "sort_by(Images, &CreationDate)[-1].ImageId" \
           --output text --region "${AWS_REGION}")
+          echo "AMI_ID=${AMI_ID}" >> $GITHUB_ENV
+          echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
 
  
     - name: Share AMI with DEMO account
       run: |
-        echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
         aws ec2 modify-image-attribute \
-          --image-id $AMI_ID \
+          --image-id ${{ steps.share_ami.outputs.ami_id }} \
           --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }}}]"
  
     - name: Configure AWS CLI for DEMO account
