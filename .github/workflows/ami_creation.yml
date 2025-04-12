@@ -137,7 +137,7 @@ jobs:
             --launch-template-id "${{ secrets.LAUNCH_TEMPLATE_ID }}" \
             --version-description "Auto-updated by GitHub Actions" \
             --source-version "$LATEST_VERSION" \
-            --launch-template-data "{\"ImageId\":\"$AMI_ID\"}")
+            --launch-template-data "{\"ImageId\":\"$AMI_ID\", \"InstanceType\":\"t2.micro\"}")
           echo "Output from create-launch-template-version:"
           echo "$output"
  
