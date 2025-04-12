@@ -92,7 +92,7 @@ jobs:
           # EXTRACT THE AMI ID USING AWS CLI (ensure the AMI name matches the filter pattern)
           AMI_ID=$(aws ec2 describe-images \
             --owners self \
-            --filters "Name=name,Values=webapp-aws-*" \
+            --filters "Name=name,Values=ami-*" \
             --query "sort_by(Images, &CreationDate)[-1].ImageId" \
             --output text \
             --region "${AWS_REGION}")
