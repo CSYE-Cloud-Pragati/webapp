@@ -94,9 +94,10 @@ jobs:
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
 
+    # NEW: SHARE THE AMI WITH THE DEMO AWS ACCOUNT
     - name: SHARE AMI WITH DEMO AWS ACCOUNT
       run: |
-          # EXTRACT AMI ID FROM PACKER_OUTPUT.TXT (ASSUMING THE LINE CONTAINS "AMI: <AMI_ID>")
+        # EXTRACT AMI ID FROM packer_output.txt (ASSUMING THE LINE CONTAINS "AMI:" FOLLOWED BY THE ID)
           AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
           echo "AMI_ID: $AMI_ID"
           aws ec2 modify-image-attribute \
@@ -106,35 +107,43 @@ jobs:
 
       # CONFIGURE AWS CLI FOR DEMO ACCOUNT
     - name: CONFIGURE AWS CLI FOR DEMO ACCOUNT
-      run: |
-          aws configure set aws_access_key_id ${{ secrets.DEMO_AWS_ACCESS_KEY }}
-          aws configure set aws_secret_access_key ${{ secrets.DEMO_AWS_SECRET_KEY }}
-          aws configure set region ${{ secrets.AWS_REGION }}
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # CREATE A NEW LAUNCH TEMPLATE VERSION WITH THE LATEST AMI ID
+      # UPDATE LAUNCH TEMPLATE WITH THE LATEST AMI
     - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
       run: |
-          # EXTRACT THE AMI ID FROM PACKER_OUTPUT.TXT
+          # EXTRACT THE AMI ID FROM packer_output.txt
           AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
           echo "UPDATING LAUNCH TEMPLATE WITH AMI_ID: $AMI_ID"
-          # GET THE LAUNCH TEMPLATE ID BY FILTERING ON NAME (ASSUMING "webapp_lt_" PREFIX)
-          LT_ID=$(aws ec2 describe-launch-templates --filters "Name=launch-template-name,Values=webapp_lt_*" --query "LaunchTemplates[0].LaunchTemplateId" --output text --region ${{ secrets.AWS_REGION }})
-          # CREATE A NEW VERSION WITH THE NEW AMI ID
+          # GET THE LAUNCH TEMPLATE ID FROM SECRETS (NEW: LAUNCH_TEMPLATE_ID is provided as a secret)
+          LT_ID=${{ secrets.LAUNCH_TEMPLATE_ID }}
           aws ec2 create-launch-template-version \
             --launch-template-id $LT_ID \
             --version-description "UPDATE TO AMI $AMI_ID" \
             --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
             --region ${{ secrets.AWS_REGION }}
 
+      # UPDATE ASG TO USE THE LATEST VERSION OF THE LAUNCH TEMPLATE
+    - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
+      run: |
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+            --launch-template "LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version='$Latest'" \
+            --region ${{ secrets.AWS_REGION }}
+
       # ISSUE INSTANCE REFRESH ON THE AUTO SCALING GROUP
     - name: ISSUE INSTANCE REFRESH ON ASG
       run: |
           aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name csye6225_asg \
-            --preferences "MinHealthyPercentage=90,InstanceWarmup=300" \
+            --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+            --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
             --region ${{ secrets.AWS_REGION }}
 
-      # WAIT FOR INSTANCE REFRESH TO COMPLETE
+      # WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
     - name: WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
       run: |
           echo "WAITING FOR ASG INSTANCE REFRESH TO COMPLETE..."
@@ -145,7 +154,7 @@ jobs:
           while [ "$REFRESH_STATUS" = "InProgress" ] && [ $ELAPSED -lt $TIMEOUT ]; do
               sleep $INTERVAL
               ELAPSED=$((ELAPSED+INTERVAL))
-              REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name csye6225_asg --query "InstanceRefreshes[0].Status" --output text --region ${{ secrets.AWS_REGION }})
+              REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} --query "InstanceRefreshes[0].Status" --output text --region ${{ secrets.AWS_REGION }})
               echo "STATUS: $REFRESH_STATUS, ELAPSED: $ELAPSED SECONDS"
           done
           if [ "$REFRESH_STATUS" != "Successful" ]; then
@@ -153,4 +162,3 @@ jobs:
               exit 1
           fi
           echo "INSTANCE REFRESH COMPLETED SUCCESSFULLY."
-
