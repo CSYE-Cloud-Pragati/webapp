@@ -105,24 +105,10 @@ jobs:
           --query "sort_by(Images, &CreationDate)[-1].ImageId" \
           --output text --region "${AWS_REGION}")
 
-    - name: Upload AWS AMI ID Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ami_id
-        path: ami_id.txt
-        if-no-files-found: error
-        retention-days: 1
-        overwrite: true
 
-    - name: Cleanup on Failure
-      if: failure()
-      run: |
-        echo "Workflow failed! Cleaning up resources..."
-        rm -f ami_id.txt
  
     - name: Share AMI with DEMO account
       run: |
-        AMI_ID=$(cat ami_id.txt)
         echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
         aws ec2 modify-image-attribute \
           --image-id $AMI_ID \
@@ -168,7 +154,6 @@ jobs:
  
         echo "Latest version: $LATEST_VERSION"
  
-        AMI_ID=$(cat ami_id.txt)
         echo "Creating new version with AMI ID: $AMI_ID"
         aws ec2 create-launch-template-version \
           --launch-template-id "$LAUNCH_TEMPLATE_ID" \
