@@ -131,9 +131,8 @@ jobs:
       run: |
           AMI_ID=${{ steps.build_ami.outputs.ami_id }}
           echo "Updating launch template with AMI_ID: $AMI_ID"
-          LT_ID=${{ secrets.LAUNCH_TEMPLATE_ID }}  # LAUNCH_TEMPLATE_ID provided as a secret
           aws ec2 create-launch-template-version \
-            --launch-template-id $LT_ID \
+            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
             --version-description "UPDATE TO AMI $AMI_ID" \
             --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
             --region ${{ secrets.AWS_REGION }}
