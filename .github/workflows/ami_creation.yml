@@ -131,21 +131,23 @@ jobs:
 
       - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
         run: |
-          AMI_ID=${{ steps.build_ami.outputs.ami_id }}
-          echo "Updating launch template with AMI_ID: $AMI_ID"
-          #Using source-version to preserve all existing parameters (including instance type)
-          aws ec2 create-launch-template-version \
-            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
-            --version-description "UPDATE TO AMI $AMI_ID" \
-            --source-version '$Latest' \
-            --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
-            --region ${{ secrets.AWS_REGION }}
+            AMI_ID=${{ steps.build_ami.outputs.ami_id }}
+            echo "Updating launch template with AMI_ID: $AMI_ID"
+            # Explicitly include instance type with the AMI ID
+            aws ec2 create-launch-template-version \
+              --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
+              --version-description "UPDATE TO AMI $AMI_ID with t2.micro" \
+              --launch-template-data "{\"ImageId\":\"$AMI_ID\",\"InstanceType\":\"t2.micro\"}" \
+              --region ${{ secrets.AWS_REGION }}
     
-          # Set this new version as the default version
-          aws ec2 modify-launch-template \
-            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
-            --default-version '$Latest' \
-            --region ${{ secrets.AWS_REGION }}
+            # Set as default version
+            aws ec2 modify-launch-template \
+              --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
+              --default-version '$Latest' \
+              --region ${{ secrets.AWS_REGION }}
+    
+            # Wait for change to propagate
+            sleep 5
 
       - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
         run: |
