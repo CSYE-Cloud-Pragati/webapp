@@ -127,7 +127,7 @@ jobs:
       - name: DEBUG Describe Launch Templates
         run: |
           aws ec2 describe-launch-templates --region ${{ secrets.AWS_REGION }} \
-            --filters "Name=launch-template-id,Values=${{ secrets.LAUNCH_TEMPLATE_ID }}"
+          --launch-template-ids ${{ secrets.LAUNCH_TEMPLATE_ID }}
 
       - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
         run: |
