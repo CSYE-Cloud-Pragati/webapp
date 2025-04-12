@@ -43,6 +43,12 @@ jobs:
       GCP_SA_KEY:  ${{ secrets.GCP_SA_KEY}}
       GCP_ZONE: ${{ secrets.GCP_ZONE}}
 
+      DEMO_AWS_ACCESS_KEY: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+      DEMO_AWS_SECRET_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
+      DEMO_AWS_ACCOUNT_ID: ${{ secrets.DEMO_AWS_ACCOUNT_ID }}
+      
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
     steps:
 
     # Step 1: Checkout the repository code
@@ -87,3 +93,64 @@ jobs:
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
+
+    - name: SHARE AMI WITH DEMO AWS ACCOUNT
+      run: |
+          # EXTRACT AMI ID FROM PACKER_OUTPUT.TXT (ASSUMING THE LINE CONTAINS "AMI: <AMI_ID>")
+          AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
+          echo "AMI_ID: $AMI_ID"
+          aws ec2 modify-image-attribute \
+            --image-id $AMI_ID \
+            --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }} }]" \
+            --region ${{ secrets.AWS_REGION }}
+
+      # CONFIGURE AWS CLI FOR DEMO ACCOUNT
+    - name: CONFIGURE AWS CLI FOR DEMO ACCOUNT
+      run: |
+          aws configure set aws_access_key_id ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+          aws configure set aws_secret_access_key ${{ secrets.DEMO_AWS_SECRET_KEY }}
+          aws configure set region ${{ secrets.AWS_REGION }}
+
+      # CREATE A NEW LAUNCH TEMPLATE VERSION WITH THE LATEST AMI ID
+    - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
+      run: |
+          # EXTRACT THE AMI ID FROM PACKER_OUTPUT.TXT
+          AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
+          echo "UPDATING LAUNCH TEMPLATE WITH AMI_ID: $AMI_ID"
+          # GET THE LAUNCH TEMPLATE ID BY FILTERING ON NAME (ASSUMING "webapp_lt_" PREFIX)
+          LT_ID=$(aws ec2 describe-launch-templates --filters "Name=launch-template-name,Values=webapp_lt_*" --query "LaunchTemplates[0].LaunchTemplateId" --output text --region ${{ secrets.AWS_REGION }})
+          # CREATE A NEW VERSION WITH THE NEW AMI ID
+          aws ec2 create-launch-template-version \
+            --launch-template-id $LT_ID \
+            --version-description "UPDATE TO AMI $AMI_ID" \
+            --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
+            --region ${{ secrets.AWS_REGION }}
+
+      # ISSUE INSTANCE REFRESH ON THE AUTO SCALING GROUP
+    - name: ISSUE INSTANCE REFRESH ON ASG
+      run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name csye6225_asg \
+            --preferences "MinHealthyPercentage=90,InstanceWarmup=300" \
+            --region ${{ secrets.AWS_REGION }}
+
+      # WAIT FOR INSTANCE REFRESH TO COMPLETE
+    - name: WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
+      run: |
+          echo "WAITING FOR ASG INSTANCE REFRESH TO COMPLETE..."
+          REFRESH_STATUS="InProgress"
+          TIMEOUT=600
+          INTERVAL=30
+          ELAPSED=0
+          while [ "$REFRESH_STATUS" = "InProgress" ] && [ $ELAPSED -lt $TIMEOUT ]; do
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED+INTERVAL))
+              REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name csye6225_asg --query "InstanceRefreshes[0].Status" --output text --region ${{ secrets.AWS_REGION }})
+              echo "STATUS: $REFRESH_STATUS, ELAPSED: $ELAPSED SECONDS"
+          done
+          if [ "$REFRESH_STATUS" != "Successful" ]; then
+              echo "INSTANCE REFRESH FAILED OR TIMED OUT."
+              exit 1
+          fi
+          echo "INSTANCE REFRESH COMPLETED SUCCESSFULLY."
+
