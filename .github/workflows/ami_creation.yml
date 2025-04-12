@@ -117,58 +117,88 @@ jobs:
           aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Verify DEMO Account Credentials
+      
+      - name: Create New Launch Template Version
+        id: lt_version
         run: |
-          aws sts get-caller-identity
-          echo "Listing available launch templates..."
-          aws ec2 describe-launch-templates --query "LaunchTemplates[*].LaunchTemplateId" --output text --region ${{ secrets.AWS_REGION }}
-
-      - name: DEBUG Describe Launch Templates
+          echo "Creating new launch template version with AMI ${AMI_ID}..."
+          output=$(aws ec2 create-launch-template-version \
+            --launch-template-id "${{ secrets.LAUNCH_TEMPLATE_ID }}" \
+            --version-description "Auto-updated by GitHub Actions" \
+            --source-version "$LATEST_VERSION" \
+            --launch-template-data "{\"ImageId\":\"$AMI_ID\"}")
+          echo "Output from create-launch-template-version:"
+          echo "$output"
+ 
+          # Extract the version number using jq; ensure jq is available in the runner
+          version=$(echo "$output" | jq -r '.LaunchTemplateVersion.VersionNumber')
+ 
+          if [ -z "$version" ]; then
+            echo "Error: Failed to extract launch template version number. Aborting."
+            exit 1
+          fi
+ 
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          LAUNCH_TEMPLATE_ID: ${{ secrets.LAUNCH_TEMPLATE_ID }}
+          AMI_ID: ${{ env.AMI_ID }}
+          LATEST_VERSION: ${{ secrets.LATEST_VERSION }}
+ 
+      - name: Update Auto Scaling Group to Use Latest Launch Template Version
         run: |
-          aws ec2 describe-launch-templates --region ${{ secrets.AWS_REGION }} \
-          --launch-template-ids ${{ secrets.LAUNCH_TEMPLATE_ID }}
-
-      - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
-        run: |
-            AMI_ID=${{ steps.build_ami.outputs.ami_id }}
-            echo "Updating launch template with AMI_ID: $AMI_ID"
-            # Explicitly include instance type with the AMI ID
-            aws ec2 create-launch-template-version \
-              --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
-              --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
-              --region ${{ secrets.AWS_REGION }}
-    
-            # Wait for change to propagate
-            sleep 5
-
-      - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
-        run: |
+          # Check if the launch template version is available from the previous step
+          if [ -z "${{ steps.lt_version.outputs.version }}" ]; then
+            echo "Error: Launch template version is empty. Aborting update."
+            exit 1
+          fi
+ 
+          echo "Updating auto scaling group ${{ secrets.AUTO_SCALING_GROUP_NAME }} with Launch Template Version ${{ steps.lt_version.outputs.version }}..."
           aws autoscaling update-auto-scaling-group \
             --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
-            --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }}
-
-      - name: ISSUE INSTANCE REFRESH ON ASG
+            --launch-template "LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }}"
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
+ 
+      - name: Start Instance Refresh
+        id: refresh
         run: |
-          aws autoscaling start-instance-refresh \
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
-            --region ${{ secrets.AWS_REGION }}
-
-      - name: WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
+            --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+          echo "refresh_id=$REFRESH_ID" >> $GITHUB_OUTPUT
+ 
+      - name: Wait for Instance Refresh to Complete
         run: |
-          echo "WAITING FOR ASG INSTANCE REFRESH TO COMPLETE..."
-          REFRESH_STATUS="InProgress"
-          TIMEOUT=600
-          INTERVAL=30
-          ELAPSED=0
-          while [ "$REFRESH_STATUS" = "InProgress" ] && [ $ELAPSED -lt $TIMEOUT ]; do
-              sleep $INTERVAL
-              ELAPSED=$((ELAPSED+INTERVAL))
-              REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} --query "InstanceRefreshes[0].Status" --output text --region ${{ secrets.AWS_REGION }})
-              echo "STATUS: $REFRESH_STATUS, ELAPSED: $ELAPSED SECONDS"
-          done
-          if [ "$REFRESH_STATUS" != "Successful" ]; then
-              echo "INSTANCE REFRESH FAILED OR TIMED OUT."
+          STATUS=""
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+              --instance-refresh-ids ${{ steps.refresh.outputs.refresh_id }} \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+ 
+            echo "Current status: $STATUS"
+            if [[ "$STATUS" == "Successful" ]]; then
+              echo "Instance refresh completed successfully."
+              break
+            elif [[ "$STATUS" == "Cancelled" || "$STATUS" == "Failed" ]]; then
+              echo "Instance refresh failed or was cancelled."
               exit 1
-          fi
-          echo "INSTANCE REFRESH COMPLETED SUCCESSFULLY."
+            fi
+            sleep 30
+          done
+ 
+
+
+
+
+
+
