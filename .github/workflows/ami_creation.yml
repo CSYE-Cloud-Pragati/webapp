@@ -126,7 +126,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
     
-    - name: DEBUG: Describe Launch Templates
+    - name: DEBUG Describe Launch Templates
       run: |
         aws ec2 describe-launch-templates --region ${{ secrets.AWS_REGION }} \
         --filters "Name=launch-template-id,Values=${{ secrets.LAUNCH_TEMPLATE_ID }}"
