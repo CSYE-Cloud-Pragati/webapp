@@ -114,9 +114,15 @@ jobs:
       - name: Reconfigure AWS CLI for DEMO Account
         uses: aws-actions/configure-aws-credentials@v3
         with:
-          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}   # FIXED: use aws-region instead of region if required
+          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Verify DEMO Account Credentials
+        run: |
+          aws sts get-caller-identity
+          echo "Listing available launch templates..."
+          aws ec2 describe-launch-templates --query "LaunchTemplates[*].LaunchTemplateId" --output text --region ${{ secrets.AWS_REGION }}
 
       - name: DEBUG Describe Launch Templates
         run: |
