@@ -112,7 +112,7 @@ jobs:
     - name: Share AMI with DEMO account
       run: |
         aws ec2 modify-image-attribute \
-          --image-id ${{ steps.ami_id.outputs.ami_id }} \
+          --image-id ${{ steps.share_ami.outputs.ami_id }} \
           --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }}}]"
  
     - name: Configure AWS CLI for DEMO account
