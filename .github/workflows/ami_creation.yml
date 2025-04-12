@@ -98,7 +98,8 @@ jobs:
             --owners self \
             --filters "Name=name,Values=webapp-aws-*" \
             --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
-            --output text --region ${{ secrets.AWS_REGION }})
+            --output text \
+            --region ${{ secrets.AWS_REGION }})
           echo "AMI_ID: $AMI_ID"
           echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
