@@ -93,19 +93,26 @@ jobs:
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
+          #EXTRACT THE AMI ID USING AWS CLI WITHOUT WRITING A FILE
+          AMI_ID=$(aws ec2 describe-images \
+            --owners self \
+            --filters "Name=name,Values=webapp-aws-*" \
+            --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
+            --output text --region ${{ secrets.AWS_REGION }})
+          echo "AMI_ID: $AMI_ID"
+          echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
-    # NEW: SHARE THE AMI WITH THE DEMO AWS ACCOUNT
+    #SHARE THE AMI WITH THE DEMO AWS ACCOUNT
     - name: SHARE AMI WITH DEMO AWS ACCOUNT
       run: |
-        # EXTRACT AMI ID FROM packer_output.txt (ASSUMING THE LINE CONTAINS "AMI:" FOLLOWED BY THE ID)
-          AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
-          echo "AMI_ID: $AMI_ID"
+          AMI_ID=${{ steps.build_ami.outputs.ami_id }}
+          echo "Sharing AMI ${AMI_ID} with DEMO account ${{ secrets.DEMO_AWS_ACCOUNT_ID }}"
           aws ec2 modify-image-attribute \
             --image-id $AMI_ID \
             --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }} }]" \
             --region ${{ secrets.AWS_REGION }}
 
-      # CONFIGURE AWS CLI FOR DEMO ACCOUNT
+      #CONFIGURE AWS CLI FOR DEMO ACCOUNT
     - name: CONFIGURE AWS CLI FOR DEMO ACCOUNT
       uses: aws-actions/configure-aws-credentials@v2
       with:
@@ -113,21 +120,19 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # UPDATE LAUNCH TEMPLATE WITH THE LATEST AMI
+      #UPDATE LAUNCH TEMPLATE WITH THE LATEST AMI ID
     - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
       run: |
-          # EXTRACT THE AMI ID FROM packer_output.txt
-          AMI_ID=$(grep 'AMI:' packer_output.txt | awk '{print $NF}')
-          echo "UPDATING LAUNCH TEMPLATE WITH AMI_ID: $AMI_ID"
-          # GET THE LAUNCH TEMPLATE ID FROM SECRETS (NEW: LAUNCH_TEMPLATE_ID is provided as a secret)
-          LT_ID=${{ secrets.LAUNCH_TEMPLATE_ID }}
+          AMI_ID=${{ steps.build_ami.outputs.ami_id }}
+          echo "Updating launch template with AMI_ID: $AMI_ID"
+          LT_ID=${{ secrets.LAUNCH_TEMPLATE_ID }}  # LAUNCH_TEMPLATE_ID provided as a secret
           aws ec2 create-launch-template-version \
             --launch-template-id $LT_ID \
             --version-description "UPDATE TO AMI $AMI_ID" \
             --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
             --region ${{ secrets.AWS_REGION }}
 
-      # UPDATE ASG TO USE THE LATEST VERSION OF THE LAUNCH TEMPLATE
+      #UPDATE AUTO SCALING GROUP TO USE THE LATEST LAUNCH TEMPLATE VERSION
     - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
       run: |
           aws autoscaling update-auto-scaling-group \
@@ -135,7 +140,7 @@ jobs:
             --launch-template "LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version='$Latest'" \
             --region ${{ secrets.AWS_REGION }}
 
-      # ISSUE INSTANCE REFRESH ON THE AUTO SCALING GROUP
+      #ISSUE INSTANCE REFRESH ON THE AUTO SCALING GROUP
     - name: ISSUE INSTANCE REFRESH ON ASG
       run: |
           aws autoscaling start-instance-refresh \
@@ -143,7 +148,7 @@ jobs:
             --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
             --region ${{ secrets.AWS_REGION }}
 
-      # WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
+      #WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
     - name: WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
       run: |
           echo "WAITING FOR ASG INSTANCE REFRESH TO COMPLETE..."
