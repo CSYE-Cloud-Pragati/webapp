@@ -5,7 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    
 
 jobs:
   test:
@@ -17,9 +16,9 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: ${{secrets.POSTGRES_USER}}
-          POSTGRES_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
-          POSTGRES_DB: ${{secrets.POSTGRES_DB}}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
@@ -35,48 +34,44 @@ jobs:
       DB_USER: ${{ secrets.DB_USERNAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       PORT: ${{ secrets.PORT }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}         # DEV credentials
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}         # DEV credentials
       AMI_USERS: ${{ secrets.AMI_USERS }}
       AUTHENTICATION_ENABLED: ${{ secrets.AUTHENTICATION_ENABLED }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
-      GCP_SA_KEY:  ${{ secrets.GCP_SA_KEY}}
-      GCP_ZONE: ${{ secrets.GCP_ZONE}}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      GCP_ZONE: ${{ secrets.GCP_ZONE }}
 
       DEMO_AWS_ACCESS_KEY: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
       DEMO_AWS_SECRET_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
       DEMO_AWS_ACCOUNT_ID: ${{ secrets.DEMO_AWS_ACCOUNT_ID }}
-      
+
       AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # Step 1: Checkout the repository code
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    # Step 3: Zip creation 
-    - name: Create Zip File
-      run: |
+      - name: Create Zip File
+        run: |
           zip -r webapp.zip .
 
-    - name: Upload Zip File
-      uses: actions/upload-artifact@v4
-      with:
+      - name: Upload Zip File
+        uses: actions/upload-artifact@v4
+        with:
           name: webapp zip creation
           path: webapp.zip
-          
-    - name: Moving Zip to APP_TEST
-      run: |
+
+      - name: Moving Zip to APP_TEST
+        run: |
           ls
           pwd
           sudo mv /home/runner/work/webapp/webapp/webapp.zip /home/runner/work/webapp/webapp/src/
 
-    # Step 4: Run the packer
-    - name: Run Packer
-      id: build_ami
-      run: |
-          # Install Packer
+      - name: Run Packer
+        id: build_ami
+        run: |
+          # INSTALL PACKER
           curl -fsSL https://releases.hashicorp.com/packer/1.7.3/packer_1.7.3_linux_amd64.zip -o packer.zip
           unzip packer.zip
           sudo mv packer /usr/local/bin/
@@ -94,145 +89,79 @@ jobs:
             -var 'aws_secret_key=${{ secrets.AWS_SECRET_KEY }}' \
             -var 'ami_users=${{ secrets.AMI_USERS }}' \
             ubuntu.pkr.hcl
-
-    - name: Retrieve Latest AMI and Save AMI_ID
-      id: share_ami
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-      run: |
-        AMI_ID=$(aws ec2 describe-images \
-          --owners self \
-          --query "sort_by(Images, &CreationDate)[-1].ImageId" \
-          --output text --region "${AWS_REGION}")
-          echo "AMI_ID=${AMI_ID}" >> $GITHUB_ENV
+          # EXTRACT THE AMI ID USING AWS CLI (ensure the AMI name matches the filter pattern)
+          AMI_ID=$(aws ec2 describe-images \
+            --owners self \
+            --filters "Name=name,Values=webapp-aws-*" \
+            --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+            --output text \
+            --region "${AWS_REGION}")
+          if [ -z "$AMI_ID" ]; then
+            echo "ERROR: AMI_ID is empty. Please verify that the AMI was built correctly."
+            exit 1
+          fi
+          echo "AMI_ID: $AMI_ID"
           echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
+      - name: Share AMI with DEMO account
+        run: |
+          # USE THE OUTPUT FROM THE BUILD AMI STEP
+          aws ec2 modify-image-attribute \
+            --image-id ${{ steps.build_ami.outputs.ami_id }} \
+            --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }} }]" \
+            --region ${{ secrets.AWS_REGION }}
 
- 
-    - name: Share AMI with DEMO account
-      run: |
-        aws ec2 modify-image-attribute \
-          --image-id ${{ steps.share_ami.outputs.ami_id }} \
-          --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }}}]"
- 
-    - name: Reconfigure AWS CLI for DEMO Account
-      uses: aws-actions/configure-aws-credentials@v3
-      with:
-          aws_access_key_id: ${{ secrets.secrets.DEMO_AWS_ACCESS_ID }}
-          aws_secret_access_key: ${{ secrets.DEMO_AWS_SECRET_KEY }}
-          region: ${{ secrets.AWS_REGION }}
+      - name: Reconfigure AWS CLI for DEMO Account
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}   # FIXED: use aws-region instead of region if required
 
- 
-    - name: Create new Launch Template version
-      run: |
-        echo "Available Launch Templates:"
-        aws ec2 describe-launch-templates --query 'LaunchTemplates[*].[LaunchTemplateId,LaunchTemplateName]' --output table
- 
-        echo "Attempting to find Launch Template..."
-        LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
-          --query 'LaunchTemplates[?starts_with(LaunchTemplateName, `csye6225-asg-instance`)].LaunchTemplateId' \
-          --output text)
- 
-        echo "Found Launch Template ID: '$LAUNCH_TEMPLATE_ID'"
- 
+      - name: DEBUG: Describe Launch Templates
+        run: |
+          aws ec2 describe-launch-templates --region ${{ secrets.AWS_REGION }} \
+            --filters "Name=launch-template-id,Values=${{ secrets.LAUNCH_TEMPLATE_ID }}"
 
-        if [ "$LAUNCH_TEMPLATE_ID" == "None" ] || [ -z "$LAUNCH_TEMPLATE_ID" ]; then
-          echo "Error: No Launch Template found!"
-          exit 1
-        fi
- 
+      - name: UPDATE LAUNCH TEMPLATE WITH LATEST AMI
+        run: |
+          AMI_ID=${{ steps.build_ami.outputs.ami_id }}
+          echo "Updating launch template with AMI_ID: $AMI_ID"
+          aws ec2 create-launch-template-version \
+            --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
+            --version-description "UPDATE TO AMI $AMI_ID" \
+            --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
+            --region ${{ secrets.AWS_REGION }}
 
-        echo "Verifying Launch Template..."
-        aws ec2 describe-launch-templates \
-          --launch-template-ids "$LAUNCH_TEMPLATE_ID" || {
-            echo "Error: Invalid Launch Template ID"
-            exit 1
-          }
- 
-        echo "Getting latest version..."
-        LATEST_VERSION=$(aws ec2 describe-launch-template-versions \
-          --launch-template-id "$LAUNCH_TEMPLATE_ID" \
-          --query "LaunchTemplateVersions[0].VersionNumber" \
-          --output text)
- 
-        echo "Latest version: $LATEST_VERSION"
- 
-        echo "Creating new version with AMI ID: $AMI_ID"
-        aws ec2 create-launch-template-version \
-          --launch-template-id "$LAUNCH_TEMPLATE_ID" \
-          --version-description "Auto-updated by GitHub Actions" \
-          --source-version "$LATEST_VERSION" \
-          --launch-template-data "{\"ImageId\":\"$AMI_ID\"}"
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
+      - name: UPDATE AUTO SCALING GROUP WITH LATEST LAUNCH TEMPLATE VERSION
+        run: |
+          aws autoscaling update-auto-scaling-group \
+            --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+            --launch-template "LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version='$Latest'" \
+            --region ${{ secrets.AWS_REGION }}
 
+      - name: ISSUE INSTANCE REFRESH ON ASG
+        run: |
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+            --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
+            --region ${{ secrets.AWS_REGION }}
 
-    - name: Start instance refresh
-      id: start_refresh
-      run: |
-        ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
-          --query "AutoScalingGroups[?AutoScalingGroupName=='csye6225_asg'].AutoScalingGroupName" \
-          --output text)
- 
-        if [ -z "$ASG_NAME" ]; then
-          echo "Error: Could not find Auto Scaling Group"
-          echo "Available ASGs:"
-          aws autoscaling describe-auto-scaling-groups --query 'AutoScalingGroups[].AutoScalingGroupName' --output table
-          exit 1
-        fi
- 
-        echo "Found ASG: $ASG_NAME"
- 
-        REFRESH_ID=$(aws autoscaling start-instance-refresh \
-          --auto-scaling-group-name "$ASG_NAME" \
-          --preferences '{"MinHealthyPercentage": 90, "InstanceWarmup": 300}' \
-          --query "InstanceRefreshId" --output text)
- 
-        echo "Started instance refresh with ID: $REFRESH_ID for ASG: $ASG_NAME"
-        echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
-        echo "ASG_NAME=$ASG_NAME" >> $GITHUB_ENV
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
- 
-    - name: Wait for instance refresh to complete
-      run: |
-        echo "Waiting for instance refresh to complete (estimated time: 15-30 minutes)..."
-        start_time=$(date +%s)
- 
-        while true; do
-          STATUS=$(aws autoscaling describe-instance-refreshes \
-            --auto-scaling-group-name "${{ env.ASG_NAME }}" \
-            --instance-refresh-ids "${{ env.REFRESH_ID }}" \
-            --query "InstanceRefreshes[0].[Status,StatusReason]" \
-            --output text)
-                    
-          status_type=$(echo "$STATUS" | cut -f1)
-          status_reason=$(echo "$STATUS" | cut -f2)
-          current_time=$(date +%s)
-          elapsed_time=$((current_time - start_time))
-          elapsed_minutes=$((elapsed_time / 60))
-                    
-          echo "Current status: $status_type (Running for ${elapsed_minutes} minutes)"
-          if [ ! -z "$status_reason" ]; then
-            echo "Status reason: $status_reason"
+      - name: WAIT FOR ASG INSTANCE REFRESH TO COMPLETE
+        run: |
+          echo "WAITING FOR ASG INSTANCE REFRESH TO COMPLETE..."
+          REFRESH_STATUS="InProgress"
+          TIMEOUT=600
+          INTERVAL=30
+          ELAPSED=0
+          while [ "$REFRESH_STATUS" = "InProgress" ] && [ $ELAPSED -lt $TIMEOUT ]; do
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED+INTERVAL))
+              REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} --query "InstanceRefreshes[0].Status" --output text --region ${{ secrets.AWS_REGION }})
+              echo "STATUS: $REFRESH_STATUS, ELAPSED: $ELAPSED SECONDS"
+          done
+          if [ "$REFRESH_STATUS" != "Successful" ]; then
+              echo "INSTANCE REFRESH FAILED OR TIMED OUT."
+              exit 1
           fi
-                    
-          if [ "$status_type" == "Successful" ]; then
-            echo "Instance refresh completed successfully after ${elapsed_minutes} minutes!"
-            exit 0
-          elif [ "$status_type" == "Failed" ] || [ "$status_type" == "Cancelled" ]; then
-            echo "Instance refresh failed or was cancelled after ${elapsed_minutes} minutes."
-            exit 1
-          fi
-                    
-          echo "Still in progress. Waiting 30 seconds before checking again..."
-          sleep 30
-        done
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
+          echo "INSTANCE REFRESH COMPLETED SUCCESSFULLY."
