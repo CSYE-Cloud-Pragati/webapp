@@ -118,7 +118,7 @@ jobs:
         run: |
           # USE THE OUTPUT FROM THE BUILD AMI STEP
           aws ec2 modify-image-attribute \
-            --image-id ${{ steps.build_ami.outputs.ami_id }} \
+            --image-id ${{ steps.ami_id.outputs.ami_id }} \
             --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }} }]" \
             --region ${{ secrets.AWS_REGION }}
 
