@@ -115,11 +115,13 @@ jobs:
           --image-id ${{ steps.share_ami.outputs.ami_id }} \
           --launch-permission "Add=[{UserId=${{ secrets.DEMO_AWS_ACCOUNT_ID }}}]"
  
-    - name: Configure AWS CLI for DEMO account
-      run: |
-        aws configure set aws_access_key_id ${{ secrets.DEMO_AWS_ACCESS_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.DEMO_AWS_SECRET_KEY }}
-        aws configure set region ${{ secrets.AWS_REGION }}
+    - name: Reconfigure AWS CLI for DEMO Account
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+          aws_access_key_id: ${{ secrets.secrets.DEMO_AWS_ACCESS_ID }}
+          aws_secret_access_key: ${{ secrets.DEMO_AWS_SECRET_KEY }}
+          region: ${{ secrets.AWS_REGION }}
+
  
     - name: Create new Launch Template version
       run: |
