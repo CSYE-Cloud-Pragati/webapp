@@ -137,7 +137,7 @@ jobs:
             aws ec2 create-launch-template-version \
               --launch-template-id ${{ secrets.LAUNCH_TEMPLATE_ID }} \
               --version-description "UPDATE TO AMI $AMI_ID with t2.micro" \
-              --launch-template-data "{\"ImageId\":\"$AMI_ID\",\"InstanceType\":\"t2.micro\"}" \
+              --launch-template-data "{\"ImageId\":\"$AMI_ID\"}" \
               --region ${{ secrets.AWS_REGION }}
     
             # Set as default version
@@ -153,8 +153,7 @@ jobs:
         run: |
           aws autoscaling update-auto-scaling-group \
             --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
-            --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }},Version=\$Latest \
-            --region ${{ secrets.AWS_REGION }}
+            --launch-template LaunchTemplateId=${{ secrets.LAUNCH_TEMPLATE_ID }}
 
       - name: ISSUE INSTANCE REFRESH ON ASG
         run: |
