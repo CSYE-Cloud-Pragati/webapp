@@ -74,6 +74,7 @@ jobs:
 
     # Step 4: Run the packer
     - name: Run Packer
+      id: build_ami
       run: |
           # Install Packer
           curl -fsSL https://releases.hashicorp.com/packer/1.7.3/packer_1.7.3_linux_amd64.zip -o packer.zip
@@ -100,6 +101,10 @@ jobs:
             --query 'sort_by(Images, &CreationDate)[-1].ImageId' \
             --output text \
             --region ${{ secrets.AWS_REGION }})
+          if [ -z "$AMI_ID" ]; then
+            echo "ERROR: AMI_ID is empty. Please verify that the AMI was built correctly."
+            exit 1
+          fi
           echo "AMI_ID: $AMI_ID"
           echo "ami_id=${AMI_ID}" >> $GITHUB_OUTPUT
 
