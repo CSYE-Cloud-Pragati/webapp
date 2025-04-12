@@ -130,8 +130,8 @@ jobs:
  
     - name: Configure AWS CLI for DEMO account
       run: |
-        aws configure set aws_access_key_id ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+        aws configure set aws_access_key_id ${{ secrets.DEMO_AWS_ACCESS_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.DEMO_AWS_SECRET_KEY }}
         aws configure set region ${{ secrets.AWS_REGION }}
  
     - name: Create new Launch Template version
@@ -176,8 +176,8 @@ jobs:
           --source-version "$LATEST_VERSION" \
           --launch-template-data "{\"ImageId\":\"$AMI_ID\"}"
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
 
 
@@ -206,8 +206,8 @@ jobs:
         echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
         echo "ASG_NAME=$ASG_NAME" >> $GITHUB_ENV
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
  
     - name: Wait for instance refresh to complete
@@ -245,6 +245,6 @@ jobs:
           sleep 30
         done
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.DEMO_AWS_ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.DEMO_AWS_SECRET_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
