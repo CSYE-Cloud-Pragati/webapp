@@ -110,7 +110,7 @@ app.all('/healthz', (req, res) => {
 });
 
 // Mount /v1/file routes
-app.use("/v1/file", fileRoutes);
+app.use("/v2/file", fileRoutes);
 
 // Catch-all for unknown routes
 app.get('*', (req, res) => {
