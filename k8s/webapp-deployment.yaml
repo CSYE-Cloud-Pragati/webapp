@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp
+  labels:
+    app: webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -U webapp -d webapp_db; do
+                echo "Waiting for postgres...";
+                sleep 2;
+              done
+      containers:
+        - name: webapp
+          image: webapp:k8s
+          imagePullPolicy: Never        # use local Minikube image, never pull from registry
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ENV
+              value: "development"
+            - name: PORT
+              value: "8080"
+            - name: DB_NAME
+              value: "webapp_db"
+            - name: DB_USERNAME
+              value: "webapp"
+            - name: DB_PASSWORD
+              value: "webapp_pass"
+            - name: DB_HOST
+              value: "postgres"         # K8s Service name — resolved via cluster DNS
+            - name: DB_PORT
+              value: "5432"
+            - name: USE_SSL
+              value: "false"
+            - name: AWS_ACCESS_KEY_ID
+              value: "placeholder"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "placeholder"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: S3_BUCKET
+              value: "placeholder"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
