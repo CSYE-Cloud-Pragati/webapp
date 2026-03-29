@@ -1,10 +1,11 @@
 const { createLogger, format, transports } = require('winston');
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'), override: true });
 
 // Use a different log file path for local development vs. production.
 // For production, we now write logs to /opt/csye6225/logs/webapp.log.
-const logFilePath = process.env.NODE_ENV === 'test'
-  ? './logs/myapp.log'  // Relative path for local testing
-  : '/opt/csye6225/logs/webapp.log'; // Production path
+const logFilePath = process.env.NODE_ENV === 'production'
+  ? '/opt/csye6225/logs/webapp.log'  // EC2/AMI production path
+  : './logs/webapp.log';             // Local development and test path
 
 const logger = createLogger({
   level: 'info',
