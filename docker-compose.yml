@@ -1,0 +1,49 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: webapp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: webapp_db
+      POSTGRES_USER: webapp
+      POSTGRES_PASSWORD: webapp_pass
+    ports:
+      - "5433:5432"          # host 5433 avoids conflict with local Mac Postgres on 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webapp -d webapp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webapp-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy   # wait until Postgres passes its healthcheck
+    ports:
+      - "8082:8080"          # host 8082 — Docker Desktop already holds 8080
+    environment:
+      NODE_ENV: development
+      PORT: 8080
+      DB_NAME: webapp_db
+      DB_USERNAME: webapp
+      DB_PASSWORD: webapp_pass
+      DB_HOST: db                    # Compose service name — resolved via internal Docker DNS
+      DB_PORT: 5432
+      USE_SSL: "false"
+      # AWS vars — required by SDK init in index.js but not exercised by /healthz
+      AWS_ACCESS_KEY_ID: placeholder
+      AWS_SECRET_ACCESS_KEY: placeholder
+      AWS_REGION: us-east-1
+      S3_BUCKET: placeholder
+
+volumes:
+  pgdata:
