@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Local environment secrets — never bake into image
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+
+# Test files — not needed at runtime
+src/tests/
+
+# Legacy infra files — not part of the app
+src/ubuntu.pkr.hcl
+src/script.sh
+src/application.service
+src/amazon-cloudwatch-agent.json
+
+# Git and CI
+.git/
+.github/
+
+# Mac artifacts
+.DS_Store
+
+# npm debug
+npm-debug.log*
