@@ -109,7 +109,17 @@ app.all('/healthz', (req, res) => {
   return res.status(405).send();
 });
 
-// Mount /v1/file routes
+// GET /whoami — returns pod identity for load balancing demo
+// POD_NAME is injected via Kubernetes Downward API in the deployment manifest
+app.get('/whoami', (req, res) => {
+  res.status(200).json({
+    pod: process.env.POD_NAME || 'unknown',
+    node: process.env.NODE_NAME || 'unknown',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Mount /v2/file routes
 app.use("/v2/file", fileRoutes);
 
 // Catch-all for unknown routes

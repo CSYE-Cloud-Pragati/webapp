@@ -56,6 +56,15 @@ spec:
               value: "us-east-1"
             - name: S3_BUCKET
               value: "placeholder"
+            # Downward API — injects pod identity at runtime for /whoami endpoint
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           readinessProbe:
             httpGet:
               path: /healthz
